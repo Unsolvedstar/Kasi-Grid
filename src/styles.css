@@ -221,3 +221,6 @@ table th { font-weight: 600; font-size: .78rem; color: var(--muted); padding: 4p
 .picker { margin-top: 10px; }
 .picker .stack { display: flex; flex-direction: column; gap: 8px; align-items: stretch; }
 .picker select, .picker input { width: 100%; }
+
+.pulse { border-left: 4px solid var(--bad); }
+.pulse.ok { border-left-color: var(--good); }

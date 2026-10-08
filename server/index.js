@@ -190,6 +190,53 @@ api.post('/reports/:id/confirm', wrap(async (req, res) => {
   res.json({ ok: true })
 }))
 
+// ---- Outage Pulse: reports from enough different devices about the same problem in one suburb become a verified incident.
+const PULSE_WINDOW = 6 * 3600 * 1000
+const PULSE_MIN_DEVICES = 3
+
+api.get('/pulse', wrap(async (req, res) => {
+  const suburb = req.query.suburb ? oneOf(String(req.query.suburb), SUBURB_IDS, 'suburb') : null
+  const since = Date.now() - PULSE_WINDOW
+  const rows = await db.execute({
+    sql: `SELECT r.id, r.suburb, r.type, r.ts, c.device AS dev, (SELECT COUNT(*) FROM report_restored x WHERE x.report_id = r.id) AS back
+          FROM reports r JOIN report_confirms c ON c.report_id = r.id
+          WHERE r.hidden = 0 AND r.sample = 0 AND r.ts > ?1 AND r.type IN ('power','water') AND (?2 IS NULL OR r.suburb = ?2)`,
+    args: [since, suburb],
+  })
+  const groups = new Map()
+  for (const r of rows.rows) {
+    const g = groups.get(r.suburb + '|' + r.type) || { suburb: r.suburb, type: r.type, devices: new Set(), reports: new Map() }
+    g.devices.add(r.dev)
+    g.reports.set(Number(r.id), { ts: Number(r.ts), back: Number(r.back) })
+    groups.set(r.suburb + '|' + r.type, g)
+  }
+  const d = deviceOf(req) || ''
+  const mine = d ? new Set((await db.execute({ sql: 'SELECT report_id FROM report_restored WHERE device = ?', args: [d] })).rows.map((x) => Number(x.report_id))) : new Set()
+  const incidents = []
+  for (const g of groups.values()) {
+    if (g.devices.size < PULSE_MIN_DEVICES) continue
+    const ids = [...g.reports.keys()]
+    const back = ids.reduce((n, id) => n + g.reports.get(id).back, 0)
+    const lastId = ids.reduce((a, b) => (g.reports.get(a).ts >= g.reports.get(b).ts ? a : b))
+    const need = Math.max(2, Math.ceil(g.devices.size / 2))
+    incidents.push({
+      suburb: g.suburb, type: g.type, devices: g.devices.size, since: Math.min(...ids.map((i) => g.reports.get(i).ts)),
+      lastReportId: lastId, restoredVotes: back, restoredNeeded: need, resolved: back >= need, restoredByMe: ids.some((i) => mine.has(i)),
+    })
+  }
+  incidents.sort((a, b) => Number(a.resolved) - Number(b.resolved) || b.devices - a.devices)
+  res.json({ incidents })
+}))
+
+api.post('/reports/:id/restored', wrap(async (req, res) => {
+  const d = needDevice(req)
+  const id = Number(req.params.id)
+  const ex = await db.execute({ sql: 'SELECT 1 FROM reports WHERE id = ? AND hidden = 0', args: [id] })
+  if (!ex.rows.length) throw new HttpError(404, 'Report not found')
+  await db.execute({ sql: 'INSERT OR IGNORE INTO report_restored (report_id, device, ts) VALUES (?,?,?)', args: [id, d, Date.now()] })
+  res.json({ ok: true })
+}))
+
 // ---- community board
 const mapShare = (s) => ({
   id: Number(s.id), kind: s.kind, category: s.category, suburb: s.suburb, title: s.title, detail: s.detail, name: s.name,
@@ -396,6 +443,7 @@ admin.post('/:kind/:id', wrap(async (req, res) => {
     const children = { reports: ['report_confirms', 'report_id'], shares: ['share_interest', 'share_id'] }[table]
     const stmts = [{ sql: 'DELETE FROM flags WHERE kind = ? AND target_id = ?', args: [table, id] }, { sql: `DELETE FROM ${table} WHERE id = ?`, args: [id] }]
     if (children) stmts.push({ sql: `DELETE FROM ${children[0]} WHERE ${children[1]} = ?`, args: [id] })
+    if (table === 'reports') stmts.push({ sql: 'DELETE FROM report_restored WHERE report_id = ?', args: [id] })
     if (table === 'places') stmts.push({ sql: 'DELETE FROM prices WHERE place_id = ?', args: ['c' + id] })
     await db.batch(stmts, 'write')
   } else {

@@ -17,6 +17,7 @@ export async function migrate() {
         id INTEGER PRIMARY KEY AUTOINCREMENT, suburb TEXT NOT NULL, type TEXT NOT NULL, text TEXT NOT NULL,
         ts INTEGER NOT NULL, confirms INTEGER NOT NULL DEFAULT 1, owner TEXT, sample INTEGER NOT NULL DEFAULT 0, hidden INTEGER NOT NULL DEFAULT 0)`,
       `CREATE TABLE IF NOT EXISTS report_confirms (report_id INTEGER, device TEXT, PRIMARY KEY (report_id, device))`,
+      `CREATE TABLE IF NOT EXISTS report_restored (report_id INTEGER, device TEXT, ts INTEGER NOT NULL, PRIMARY KEY (report_id, device))`,
       `CREATE TABLE IF NOT EXISTS shares (
         id INTEGER PRIMARY KEY AUTOINCREMENT, kind TEXT NOT NULL, category TEXT NOT NULL, suburb TEXT NOT NULL, title TEXT NOT NULL,
         detail TEXT NOT NULL DEFAULT '', name TEXT NOT NULL, ts INTEGER NOT NULL, interested INTEGER NOT NULL DEFAULT 0,

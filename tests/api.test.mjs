@@ -248,3 +248,25 @@ test('new suburbs work everywhere and admin reports the NAMC status', async () =
   const o = await admin('/overview')
   assert.equal(o.body.namc.current.issueNo, 129)
 })
+
+test('outage pulse: three devices make a verified incident, restored votes resolve it', async () => {
+  const devs = ['cccccccc-1111-2222-3333-444444444444', 'dddddddd-1111-2222-3333-444444444444', 'eeeeeeee-1111-2222-3333-444444444444']
+  const sub = 'mamelodi'
+  assert.equal((await call(`/pulse?suburb=${sub}`)).body.incidents.length, 0)
+  const c = await call('/reports', { device: devs[0], method: 'POST', body: { suburb: sub, type: 'water', text: 'No water since morning' } })
+  await call(`/reports/${c.body.id}/confirm`, { device: devs[1], method: 'POST' })
+  assert.equal((await call(`/pulse?suburb=${sub}`)).body.incidents.length, 0) // two devices is not enough
+  await call(`/reports/${c.body.id}/confirm`, { device: devs[2], method: 'POST' })
+  let inc = (await call(`/pulse?suburb=${sub}`, { device: devs[0] })).body.incidents
+  assert.equal(inc.length, 1)
+  assert.equal(inc[0].devices, 3)
+  assert.equal(inc[0].resolved, false)
+  await call(`/reports/${c.body.id}/restored`, { device: devs[0], method: 'POST' })
+  await call(`/reports/${c.body.id}/restored`, { device: devs[0], method: 'POST' }) // duplicate vote ignored
+  inc = (await call(`/pulse?suburb=${sub}`, { device: devs[0] })).body.incidents
+  assert.equal(inc[0].restoredVotes, 1)
+  assert.equal(inc[0].restoredByMe, true)
+  await call(`/reports/${c.body.id}/restored`, { device: devs[1], method: 'POST' })
+  assert.equal((await call(`/pulse?suburb=${sub}`)).body.incidents[0].resolved, true)
+  assert.equal((await call('/pulse?suburb=nowhere')).status, 400)
+})

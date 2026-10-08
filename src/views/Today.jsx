@@ -1,6 +1,7 @@
 import { CHECKLIST, CHECKLIST_GROUPS, SHARE_CATEGORIES } from '../data.js'
 import { useT } from '../i18n.jsx'
 import { useWeather } from '../live.js'
+import Pulse from '../components/Pulse.jsx'
 import { adviceFor } from '../advice.js'
 import { fmtSlot, timeAgo, useLocalStorage, waLink, waterStatus, WATER, CONFIRM_THRESHOLD } from '../lib.js'
 
@@ -9,7 +10,7 @@ const greetingKey = () => {
   return h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening'
 }
 
-export default function Today({ suburb, stage, isLive, live, slots, official, reports, shares, setTab, setDraft }) {
+export default function Today({ suburb, stage, isLive, live, slots, official, reports, shares, incidents, actions, setTab, setDraft }) {
   const t = useT()
   const wx = useWeather(suburb)
   const [done, setDone] = useLocalStorage('kg2.checklist', [])
@@ -64,6 +65,8 @@ export default function Today({ suburb, stage, isLive, live, slots, official, re
         </div>
         <a className="wa" href={waLink(summary)} target="_blank" rel="noreferrer">{t('Share this update on WhatsApp')}</a>
       </section>
+
+      <Pulse suburb={suburb} incidents={incidents} actions={actions} />
 
       {(offNow || water !== 'ok') && (
         <section className="notice" role="status">

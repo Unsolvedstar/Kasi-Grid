@@ -56,7 +56,7 @@ const writeQueue = (q) => {
 
 // Shared community data, refreshed every 30 seconds and after every action.
 export function useCommunity() {
-  const [data, setData] = useState({ reports: [], shares: [], places: [], prices: {} })
+  const [data, setData] = useState({ reports: [], shares: [], places: [], prices: {}, incidents: [] })
   const [status, setStatus] = useState('loading') // loading | ok | error
   const alive = useRef(true)
   const [queued, setQueued] = useState(() => readQueue().length)
@@ -89,11 +89,11 @@ export function useCommunity() {
 
   const refresh = useCallback(async () => {
     try {
-      const [r, s, p, pr] = await Promise.all([api('/reports'), api('/shares'), api('/places'), api('/prices')])
+      const [r, s, p, pr, pu] = await Promise.all([api('/reports'), api('/shares'), api('/places'), api('/prices'), api('/pulse').catch(() => ({ incidents: [] }))])
       const prices = {}
       for (const x of pr.prices) (prices[x.placeId] ||= {})[x.item] = { price: x.price, ts: x.ts }
       if (alive.current) {
-        setData({ reports: r.reports, shares: s.shares, places: p.places, prices })
+        setData({ reports: r.reports, shares: s.shares, places: p.places, prices, incidents: pu.incidents })
         setStatus('ok')
       }
       if (readQueue().length) flush().then(() => alive.current && refreshAfterFlush())
@@ -126,6 +126,7 @@ export function useCommunity() {
     })
   const actions = {
     addReport: (b) => actQueued('/reports', b),
+    restored: (id) => act(`/reports/${id}/restored`),
     confirmReport: (id) => act(`/reports/${id}/confirm`),
     addShare: (b) => actQueued('/shares', b),
     interested: (id) => act(`/shares/${id}/interest`),

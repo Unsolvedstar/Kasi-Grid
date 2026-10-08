@@ -24,6 +24,10 @@ Docker: `docker build -t kasi-grid . && docker run -p 3000:3000 -v kasi-data:/ap
 npm test    # 56 tests: calculations, translations, and the full API including admin and rate limits (starts its own server and temporary database)
 ```
 
+## Outage Pulse
+
+When 3 or more different devices report or confirm the same power or water problem in one suburb within 6 hours, the Today tab shows a **verified outage** card (`GET /api/pulse`). Neighbours can vote "It is back on for me"; once half of them (minimum 2) agree, the card turns green. People can opt in to a phone notification when a new verified outage appears while the app is open. Sample data is ignored. For a demo, run `node scripts/demo-seed.mjs http://localhost:3000 alex` to create one.
+
 ## Moderation (admin page)
 
 Open `/admin` and sign in with the server's `ADMIN_TOKEN`. It lists reports, board posts and community places, with flagged items first. You can hide, restore or delete each one, and see how many flags it has and a short id of the device that posted it.
