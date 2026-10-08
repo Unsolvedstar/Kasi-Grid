@@ -47,7 +47,7 @@ feats.forEach(([h, b], i) => {
 // 4 New feature
 s = base('New this weekend: Pulse and Forecast', true)
 phone(s, 'today', 7.55, 0.5, 4.5)
-bullets(s, ['Outage Pulse: 3+ different neighbours report the same problem and it becomes a Verified outage', 'Neighbours vote "back on" and the alert closes itself', 'Outage Forecast: learns each suburb's weekday and time-of-day pattern from its own reports', 'Early warning at 2 reports, one short of verified', 'Opt-in phone notifications'], { x: 0.5, y: 1.3, w: 3.9, h: 3.8, fontSize: 14, color: 'FFFFFF' })
+bullets(s, ['Outage Pulse: 3+ different neighbours report the same problem and it becomes a Verified outage', 'Neighbours vote "back on" and the alert closes itself', 'Outage Forecast: learns the weekday and time-of-day pattern from its own reports', 'Early warning at 2 reports, one short of verified', 'Opt-in phone notifications'], { x: 0.5, y: 1.3, w: 3.9, h: 3.8, fontSize: 14, color: 'FFFFFF' })
 s.addImage({ path: shot('forecast'), x: 4.7, y: 1.4, w: 2.6, h: 2.6 * 606 / 776 })
 s.addText('Rule-based and transparent: it shows its confidence and says when there is not enough data.', { x: 4.7, y: 3.55, w: 2.6, h: 0.9, fontFace: B, fontSize: 12, italic: true, color: 'CFE3E1', valign: 'top', margin: 0, isTextBox: true })
 
