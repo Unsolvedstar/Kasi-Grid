@@ -41,6 +41,7 @@ export default function Today({ suburb, stage, isLive, live, slots, official, re
 
   return (
     <>
+      <Pulse suburb={suburb} incidents={incidents} actions={actions} />
       <section className={`card hero ${alert ? 'alert' : ''}`}>
         <p className="muted">{t(greetingKey())}</p>
         <h2>{t('{name} today', { name: suburb.name })}</h2>
@@ -53,7 +54,7 @@ export default function Today({ suburb, stage, isLive, live, slots, official, re
           </button>
           <button className="tile" onClick={() => setTab('alerts')}>
             <span>💧 {t('Water')}</span>
-            <strong style={{ color: w.color }}>{t(w.label)}</strong>
+            <strong style={{ color: w.css }}>{t(w.label)}</strong>
           </button>
           <button className="tile" onClick={() => setTab('alerts')}>
             <span>📣 {t('Confirmed today')}</span>
@@ -67,7 +68,6 @@ export default function Today({ suburb, stage, isLive, live, slots, official, re
         <a className="wa" href={waLink(summary)} target="_blank" rel="noreferrer">{t('Share this update on WhatsApp')}</a>
       </section>
 
-      <Pulse suburb={suburb} incidents={incidents} actions={actions} />
       <Forecast suburb={suburb} incidents={incidents} />
 
       {(offNow || water !== 'ok') && (

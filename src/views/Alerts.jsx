@@ -81,9 +81,9 @@ export default function Alerts({ suburb, stage, isLive, live, cityStage, slots, 
           <AreaPicker suburb={suburb} schedule={schedule} chosen={chosenArea} setArea={setArea} />
         </div>
 
-        <div className="card status" style={{ borderTopColor: WATER[water].color }}>
+        <div className="card status" style={{ borderColor: WATER[water].css }}>
           <h2>💧 {t('Water in {name}', { name: suburb.name })}</h2>
-          <p className="big" style={{ color: WATER[water].color }}>{t(WATER[water].label)}</p>
+          <p className="big" style={{ color: WATER[water].css }}>{t(WATER[water].label)}</p>
           <p className="muted">There is no official public water-outage feed. This comes from reports by neighbours in the last 24 hours.</p>
           {water !== 'ok' && <p>Store drinking water now and avoid washing until supply returns.</p>}
           <p className="muted small">

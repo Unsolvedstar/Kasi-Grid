@@ -98,9 +98,9 @@ export const outageHoursPerMonth = (stage) => stage * 22.5
 export const CONFIRM_THRESHOLD = 3
 
 export const WATER = {
-  ok: { label: 'No water reports', color: '#2f855a' },
-  low: { label: 'Reported, unconfirmed', color: '#d69e2e' },
-  out: { label: 'Outage confirmed by residents', color: '#c53030' },
+  ok: { label: 'No water reports', color: '#2f855a', css: 'var(--good)' },
+  low: { label: 'Reported, unconfirmed', color: '#d69e2e', css: 'var(--warn)' },
+  out: { label: 'Outage confirmed by residents', color: '#c53030', css: 'var(--bad)' },
 }
 
 // There is no official public water-outage feed, so status comes from resident reports in the last 24 h.
