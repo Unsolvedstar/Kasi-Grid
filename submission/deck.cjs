@@ -45,9 +45,11 @@ feats.forEach(([h, b], i) => {
 })
 
 // 4 New feature
-s = base('New this weekend: Outage Pulse', true)
-phone(s, 'today', 6.4, 0.55, 4.7)
-bullets(s, ['3+ different neighbours report the same power or water problem in a suburb within 6 hours, and it becomes a Verified outage', 'Neighbours vote "It is back on for me". Half agree (minimum 2) and the card turns green', 'Opt-in phone notification when a new verified outage appears', 'Sample data and hidden posts are excluded. One vote per device'], { x: 0.5, y: 1.3, w: 5.5, h: 3.6, color: 'FFFFFF' })
+s = base('New this weekend: Pulse and Forecast', true)
+phone(s, 'today', 7.55, 0.5, 4.5)
+bullets(s, ['Outage Pulse: 3+ different neighbours report the same problem and it becomes a Verified outage', 'Neighbours vote "back on" and the alert closes itself', 'Outage Forecast: learns each suburb's weekday and time-of-day pattern from its own reports', 'Early warning at 2 reports, one short of verified', 'Opt-in phone notifications'], { x: 0.5, y: 1.3, w: 3.9, h: 3.8, fontSize: 14, color: 'FFFFFF' })
+s.addImage({ path: shot('forecast'), x: 4.7, y: 1.4, w: 2.6, h: 2.6 * 606 / 776 })
+s.addText('Rule-based and transparent: it shows its confidence and says when there is not enough data.', { x: 4.7, y: 3.55, w: 2.6, h: 0.9, fontFace: B, fontSize: 12, italic: true, color: 'CFE3E1', valign: 'top', margin: 0, isTextBox: true })
 
 // 5 Journey
 s = base('User journey: Thandi in Alexandra')
@@ -90,7 +92,7 @@ card(s, 5.1, 3.1, 4.4, 1.6, 'Admin and transport', 'Token-protected moderation, 
 
 // 9 Business
 s = base('Who pays, and why they will', true)
-bullets(s, ['Municipalities and utilities: verified, suburb-level outage data to dispatch faster than call centres', 'Spaza and small business: Pro plan with outage alerts and loss planner', 'Banks and insurers (e.g. FNB): township resilience and financial inclusion partnerships', 'Data ownership: all community data sits in our own database, exportable and anonymous'], { x: 0.5, y: 1.3, w: 5.4, h: 3.6, color: 'FFFFFF' })
+bullets(s, ['Municipalities and utilities: verified, suburb-level outage data to dispatch faster than call centres', 'Spaza and small business: Pro plan with outage alerts and loss planner', 'Banks and insurers (e.g. FNB): township resilience and financial inclusion partnerships', 'Data ownership: all community data sits in our own database, exportable and anonymous', 'Pilot: [N] neighbours in [SUBURB], [N] reports, [N] verified outages'], { x: 0.5, y: 1.3, w: 5.4, h: 3.6, color: 'FFFFFF' })
 ;[['3+', 'devices verify an outage'], ['4', 'languages'], ['R0', 'for residents, always']].forEach(([n, l], i) => {
   s.addText(n, { x: 6.5, y: 1.2 + i * 1.3, w: 3, h: 0.75, fontFace: H, fontSize: 44, bold: true, color: AMB, margin: 0, isTextBox: true })
   s.addText(l, { x: 6.5, y: 1.95 + i * 1.3, w: 3, h: 0.3, fontFace: B, fontSize: 14, color: 'CFE3E1', margin: 0, isTextBox: true })

@@ -9,4 +9,4 @@ Goal: 20 people in one suburb, 1 spaza owner, 1 ward councillor or community gro
 5. Record numbers from `/api/stats` (anonymous, last 7 days) daily: neighbours, reports, offers, "back on" votes.
 6. Put the final numbers and one quote on slide 9 of the deck.
 
-Report only real numbers. Items marked Sample and the demo seed scripts are excluded from or separate from `/api/stats` when run on a throwaway database.
+Report only real numbers. The demo scripts write fake data that counts in `/api/stats`, so use them only on a throwaway database, never on the pilot one.
