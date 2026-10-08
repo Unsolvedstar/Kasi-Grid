@@ -1,0 +1,16 @@
+# One-click deploy on Render: connect the repo, it builds the Dockerfile and keeps the SQLite file on a disk.
+services:
+  - type: web
+    name: kasi-grid
+    runtime: docker
+    plan: starter
+    healthCheckPath: /api/health
+    disk:
+      name: kasi-data
+      mountPath: /app/data
+      sizeGB: 1
+    envVars:
+      - key: ADMIN_TOKEN
+        generateValue: true
+      - key: NODE_ENV
+        value: production

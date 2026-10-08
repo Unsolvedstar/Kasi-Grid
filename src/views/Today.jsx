@@ -1,6 +1,7 @@
 import { CHECKLIST, CHECKLIST_GROUPS, SHARE_CATEGORIES } from '../data.js'
 import { useT } from '../i18n.jsx'
 import { useWeather } from '../live.js'
+import Forecast from '../components/Forecast.jsx'
 import Pulse from '../components/Pulse.jsx'
 import { adviceFor } from '../advice.js'
 import { fmtSlot, timeAgo, useLocalStorage, waLink, waterStatus, WATER, CONFIRM_THRESHOLD } from '../lib.js'
@@ -10,7 +11,7 @@ const greetingKey = () => {
   return h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening'
 }
 
-export default function Today({ suburb, stage, isLive, live, slots, official, reports, shares, incidents, actions, setTab, setDraft }) {
+export default function Today({ suburb, stage, isLive, live, slots, official, reports, shares, incidents, stats, actions, setTab, setDraft }) {
   const t = useT()
   const wx = useWeather(suburb)
   const [done, setDone] = useLocalStorage('kg2.checklist', [])
@@ -67,6 +68,7 @@ export default function Today({ suburb, stage, isLive, live, slots, official, re
       </section>
 
       <Pulse suburb={suburb} incidents={incidents} actions={actions} />
+      <Forecast suburb={suburb} incidents={incidents} />
 
       {(offNow || water !== 'ok') && (
         <section className="notice" role="status">
@@ -74,6 +76,12 @@ export default function Today({ suburb, stage, isLive, live, slots, official, re
           {offNow && t('Power is likely off, so keep phones charged and fridge doors shut.') + ' '}
           {water !== 'ok' && t('Water problems are reported nearby, so store drinking water now.')}
         </section>
+      )}
+
+      {stats && stats.devices > 0 && (
+        <p className="muted small" role="status">
+          {t('This week: {d} neighbours in {s} areas made {r} reports and {o} offers.', { d: stats.devices, s: stats.suburbs, r: stats.reports, o: stats.offers })}
+        </p>
       )}
 
       <Weather wx={wx} t={t} />

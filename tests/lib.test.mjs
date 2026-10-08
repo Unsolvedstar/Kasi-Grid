@@ -82,3 +82,40 @@ test('distance is sensible', () => {
   const d = distanceKm(a, b)
   assert.ok(d > 20 && d < 40, `Alexandra to Soweto is ${d} km`)
 })
+
+import { forecast, nextWindow } from '../shared/forecast.js'
+
+// 2026-10-05 is a Monday. Hours below are South African time (UTC+2).
+const sast = (d, h) => Date.UTC(2026, 9, d, h - 2)
+const ev = (type, ts, dev = 'a') => ({ type, ts, devices: [dev] })
+
+test('forecast: needs enough history before it predicts', () => {
+  const f = forecast([ev('water', sast(5, 7)), ev('water', sast(6, 7))], sast(8, 12))
+  assert.equal(f.water.enough, false)
+  assert.equal(f.power.enough, false)
+})
+
+test('forecast: finds the weekday and time of day outages cluster, and the next window', () => {
+  const events = [sast(5, 7), sast(12, 8), sast(19, 6), sast(21, 15), sast(14, 20)].map((t) => ev('water', t))
+  const f = forecast(events, sast(23, 12)) // Friday 23 Oct
+  assert.equal(f.water.pattern, true)
+  assert.equal(f.water.dow, 1) // Monday
+  assert.equal(f.water.band, 'morning')
+  assert.equal(f.water.share, 60)
+  assert.equal(f.water.confidence, 'high')
+  const next = new Date(f.water.next.start + 2 * 3600 * 1000)
+  assert.equal(next.getUTCDay(), 1)
+  assert.equal(next.getUTCHours(), 5)
+})
+
+test('forecast: early warning when exactly two devices reported in the last 3 hours', () => {
+  const now = sast(8, 12)
+  const f = forecast([ev('power', now - 3600e3, 'a'), ev('power', now - 1800e3, 'b')], now)
+  assert.deepEqual(f.building, [{ type: 'power', devices: 2 }])
+})
+
+test('nextWindow: reports "now" when inside the window', () => {
+  const w = nextWindow(1, 'morning', sast(5, 9))
+  assert.equal(w.now, true)
+  assert.equal(w.start, sast(5, 9))
+})

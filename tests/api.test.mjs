@@ -270,3 +270,14 @@ test('outage pulse: three devices make a verified incident, restored votes resol
   assert.equal((await call(`/pulse?suburb=${sub}`)).body.incidents[0].resolved, true)
   assert.equal((await call('/pulse?suburb=nowhere')).status, 400)
 })
+
+test('forecast and stats endpoints respond with the expected shape', async () => {
+  const f = await call('/forecast?suburb=alex')
+  assert.equal(f.status, 200)
+  assert.equal(f.body.power.enough, false)
+  assert.ok(Array.isArray(f.body.building))
+  assert.equal((await call('/forecast?suburb=nowhere')).status, 400)
+  const s = await call('/stats')
+  assert.equal(s.status, 200)
+  assert.ok(s.body.reports >= 1 && s.body.devices >= 1 && s.body.suburbs >= 1)
+})

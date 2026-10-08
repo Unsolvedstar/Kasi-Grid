@@ -224,3 +224,6 @@ table th { font-weight: 600; font-size: .78rem; color: var(--muted); padding: 4p
 
 .pulse { border-left: 4px solid var(--bad); }
 .pulse.ok { border-left-color: var(--good); }
+
+.gear { align-self: end; }
+.settings { flex: 1 1 100%; display: flex; flex-wrap: wrap; gap: 12px; padding: 10px 12px; background: var(--card); border: 1px solid var(--line); border-radius: 10px; }

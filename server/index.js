@@ -11,6 +11,7 @@ import { CITIES, SUBURBS } from '../shared/suburbs.js'
 import { STAPLES as STAPLE_LIST } from '../shared/namc.js'
 import { weatherFor } from './weather.js'
 import { autoLink, callsToday, cityStage, espEnabled, listMappings, nearbyForSuburb, quota, removeMapping, scheduleFor, searchAreas, searchNearSuburb, setMapping, startEspLinking, testConnection } from './esp.js'
+import { forecast } from '../shared/forecast.js'
 import { foodReference, namcStatus, refreshNamc, startNamcSchedule } from './namc.js'
 
 const app = express()
@@ -235,6 +236,40 @@ api.post('/reports/:id/restored', wrap(async (req, res) => {
   if (!ex.rows.length) throw new HttpError(404, 'Report not found')
   await db.execute({ sql: 'INSERT OR IGNORE INTO report_restored (report_id, device, ts) VALUES (?,?,?)', args: [id, d, Date.now()] })
   res.json({ ok: true })
+}))
+
+// Pattern forecast and early warning from the suburb's own history (real reports only).
+api.get('/forecast', wrap(async (req, res) => {
+  const suburb = oneOf(String(req.query.suburb || ''), SUBURB_IDS, 'suburb')
+  const rows = await db.execute({
+    sql: `SELECT r.ts, r.type, c.device AS dev FROM reports r JOIN report_confirms c ON c.report_id = r.id
+          WHERE r.suburb = ? AND r.sample = 0 AND r.hidden = 0 AND r.ts > ? AND r.type IN ('power','water')`,
+    args: [suburb, Date.now() - 90 * 24 * 3600 * 1000],
+  })
+  const by = new Map()
+  for (const r of rows.rows) {
+    const k = r.type + '|' + r.ts
+    const e = by.get(k) || { type: r.type, ts: Number(r.ts), devices: [] }
+    e.devices.push(r.dev)
+    by.set(k, e)
+  }
+  res.json(forecast([...by.values()]))
+}))
+
+// Anonymous community totals for the last 7 days (no samples), shown in the app and on the admin page.
+api.get('/stats', wrap(async (req, res) => {
+  const since = Date.now() - WEEK
+  const one = async (sql, args = [since]) => Number((await db.execute({ sql, args })).rows[0].n)
+  const [reports, offers, restored, devices, suburbs] = await Promise.all([
+    one('SELECT COUNT(*) AS n FROM reports WHERE sample = 0 AND hidden = 0 AND ts > ?'),
+    one('SELECT COUNT(*) AS n FROM shares WHERE sample = 0 AND hidden = 0 AND ts > ?'),
+    one('SELECT COUNT(*) AS n FROM report_restored WHERE ts > ?'),
+    one(`SELECT COUNT(*) AS n FROM (SELECT owner FROM reports WHERE sample = 0 AND ts > ?1 AND owner IS NOT NULL
+         UNION SELECT owner FROM shares WHERE sample = 0 AND ts > ?1 AND owner IS NOT NULL
+         UNION SELECT device FROM report_restored WHERE ts > ?1)`),
+    one(`SELECT COUNT(*) AS n FROM (SELECT suburb FROM reports WHERE sample = 0 AND ts > ?1 UNION SELECT suburb FROM shares WHERE sample = 0 AND ts > ?1)`),
+  ])
+  res.json({ reports, offers, restored, devices, suburbs })
 }))
 
 // ---- community board

@@ -89,11 +89,11 @@ export function useCommunity() {
 
   const refresh = useCallback(async () => {
     try {
-      const [r, s, p, pr, pu] = await Promise.all([api('/reports'), api('/shares'), api('/places'), api('/prices'), api('/pulse').catch(() => ({ incidents: [] }))])
+      const [r, s, p, pr, pu, st] = await Promise.all([api('/reports'), api('/shares'), api('/places'), api('/prices'), api('/pulse').catch(() => ({ incidents: [] })), api('/stats').catch(() => null)])
       const prices = {}
       for (const x of pr.prices) (prices[x.placeId] ||= {})[x.item] = { price: x.price, ts: x.ts }
       if (alive.current) {
-        setData({ reports: r.reports, shares: s.shares, places: p.places, prices, incidents: pu.incidents })
+        setData({ reports: r.reports, shares: s.shares, places: p.places, prices, incidents: pu.incidents, stats: st })
         setStatus('ok')
       }
       if (readQueue().length) flush().then(() => alive.current && refreshAfterFlush())
@@ -136,4 +136,15 @@ export function useCommunity() {
     flag: (kind, id) => act(`/flag/${kind}/${id}`),
   }
   return { ...data, status, queued, actions }
+}
+
+// Pattern forecast for one suburb. It re-reads when the suburb changes or a new verified outage appears.
+export function useForecast(suburbId, trigger) {
+  const [data, setData] = useState(null)
+  useEffect(() => {
+    let live = true
+    api('/forecast?suburb=' + suburbId).then((d) => live && setData(d)).catch(() => live && setData(null))
+    return () => { live = false }
+  }, [suburbId, trigger])
+  return data
 }

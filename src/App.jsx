@@ -27,6 +27,7 @@ export default function App() {
   const [stageMode, setStageMode] = useLocalStorage('kg2.stageMode', 'live')
   const community = useCommunity()
   const [draft, setDraft] = useState(null)
+  const [settings, setSettings] = useState(false)
   const { t, lang, setLang } = useLang()
   const [online, setOnline] = useState(navigator.onLine)
   useEffect(() => {
@@ -83,7 +84,9 @@ export default function App() {
             ))}
           </select>
         </label>
-        <label className="area">
+        <button className="ghost gear" aria-expanded={settings} aria-label={t('Settings')} onClick={() => setSettings(!settings)}>⚙️ {t('Settings')}</button>
+        {settings && <div className="settings">
+          <label className="area">
           <span>{t('Loadshedding stage')}</span>
           <select value={stageMode} onChange={(e) => setStageMode(e.target.value)}>
             <option value="live">
@@ -93,13 +96,14 @@ export default function App() {
               <option key={n} value={n}>{t('Simulate stage {n}', { n })}</option>
             ))}
           </select>
-        </label>
-        <label className="area">
+          </label>
+          <label className="area">
           <span>{t('Language')}</span>
           <select value={lang} onChange={(e) => setLang(e.target.value)}>
             {LANGS.map((l) => <option key={l.id} value={l.id}>{l.label}</option>)}
           </select>
-        </label>
+          </label>
+        </div>}
       </header>
 
       {!online && <div className="notice" role="status">{t('You are offline. Showing the last data saved on this phone. Anything you post is saved and sent when you have signal.')}</div>}
