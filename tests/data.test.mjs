@@ -72,3 +72,11 @@ test('advice: one card per alert type, most severe first, actions only where use
   assert.equal(cards[1].action, undefined)
   assert.deepEqual(adviceFor([]), [])
 })
+
+test('outage duration stats: median and 80th percentile, ignoring junk, needing 3 samples', async () => {
+  const { durationStats } = await import('../shared/forecast.js')
+  assert.equal(durationStats([1, 2]), null)
+  assert.deepEqual(durationStats([1, 2, 3, 4, 10]), { n: 5, median: 3, p80: 4 })
+  assert.deepEqual(durationStats([2, 4, 6, 8]), { n: 4, median: 5, p80: null }, 'too few outages for a tail figure')
+  assert.equal(durationStats([0.01, 100, NaN, 2, 3]), null, 'sub-5-minute, over-72-hour and invalid values are dropped')
+})

@@ -1,17 +1,23 @@
+import { lazy, Suspense } from 'react'
+import Icon from '../components/Icon.jsx'
 import { CHECKLIST, CHECKLIST_GROUPS, SHARE_CATEGORIES } from '../data.js'
 import { useT } from '../i18n.jsx'
 import { useWeather } from '../live.js'
 import Forecast from '../components/Forecast.jsx'
 import Pulse from '../components/Pulse.jsx'
+import Welcome from '../components/Welcome.jsx'
+import MedWarning from '../components/MedWarning.jsx'
 import { adviceFor } from '../advice.js'
-import { fmtSlot, timeAgo, useLocalStorage, waLink, waterStatus, WATER, CONFIRM_THRESHOLD } from '../lib.js'
+import { daysWithoutLoadshedding, fmtSlot, timeAgo, useLocalStorage, waLink, waterStatus, WATER, CONFIRM_THRESHOLD } from '../lib.js'
+
+const OutageMap = lazy(() => import('../components/OutageMap.jsx'))
 
 const greetingKey = () => {
   const h = new Date().getHours()
   return h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening'
 }
 
-export default function Today({ suburb, stage, isLive, live, slots, official, reports, shares, incidents, stats, actions, setTab, setDraft }) {
+export default function Today({ suburb, stage, isLive, live, slots, official, reports, shares, incidents, stats, actions, setTab, setDraft, setSuburbId }) {
   const t = useT()
   const wx = useWeather(suburb)
   const [done, setDone] = useLocalStorage('kg2.checklist', [])
@@ -41,32 +47,45 @@ export default function Today({ suburb, stage, isLive, live, slots, official, re
 
   return (
     <>
+      <Welcome setTab={setTab} />
       <Pulse suburb={suburb} incidents={incidents} actions={actions} />
+      <MedWarning suburb={suburb} incidents={incidents} setTab={setTab} />
       <section className={`card hero ${alert ? 'alert' : ''}`}>
         <p className="muted">{t(greetingKey())}</p>
         <h2>{t('{name} today', { name: suburb.name })}</h2>
         <div className="tiles">
           <button className="tile" onClick={() => setTab('alerts')}>
-            <span>⚡ {t('Power')}</span>
+            <span><Icon name="zap" /> {t('Power')}</span>
             <strong>{power}</strong>
             {stage > 0 && !official && <small>{t('Simulated pattern')}</small>}
             {stage > 0 && official && <small>{t('Official schedule')}</small>}
           </button>
           <button className="tile" onClick={() => setTab('alerts')}>
-            <span>💧 {t('Water')}</span>
+            <span><Icon name="droplet" /> {t('Water')}</span>
             <strong style={{ color: w.css }}>{t(w.label)}</strong>
           </button>
           <button className="tile" onClick={() => setTab('alerts')}>
-            <span>📣 {t('Confirmed today')}</span>
+            <span><Icon name="megaphone" /> {t('Confirmed today')}</span>
             <strong>{confirmed.length}</strong>
           </button>
           <button className="tile" onClick={() => setTab('share')}>
-            <span>🤝 {t('Neighbours offering')}</span>
+            <span><Icon name="users" /> {t('Neighbours offering')}</span>
             <strong>{offers.length}</strong>
           </button>
         </div>
         <a className="wa" href={waLink(summary)} target="_blank" rel="noreferrer">{t('Share this update on WhatsApp')}</a>
       </section>
+
+      <Suspense fallback={null}><OutageMap suburb={suburb} incidents={incidents} setSuburbId={setSuburbId} /></Suspense>
+
+      {stage === 0 && isLive && live.status === 'ok' && (
+        <section className="card">
+          <h2>{t('Loadshedding has paused. Local outages have not.')}</h2>
+          <p>{t('Eskom reports no loadshedding for {n} days, since 16 May 2025. Your power can still go off from load reduction (areas with illegal connections or overloaded transformers), cable theft or faults, and water supply is failing in parts of Johannesburg.', { n: daysWithoutLoadshedding() })}</p>
+          <p className="muted small">{t('If it happens on your street, report it so neighbours can see it is real. Three neighbours confirming makes it a verified outage.')}</p>
+          <button className="ghost" onClick={() => setTab('alerts')}>{t('Report a problem')}</button>
+        </section>
+      )}
 
       <Forecast suburb={suburb} incidents={incidents} />
 
@@ -88,7 +107,7 @@ export default function Today({ suburb, stage, isLive, live, slots, official, re
 
       {wx.data && adviceFor(wx.data.alerts).map((a) => (
         <section key={a.type} className={`card advice ${a.level}`}>
-          <h2>{a.icon} {t(a.title)}</h2>
+          <h2><Icon name={a.icon} /> {t(a.title)}</h2>
           <ul className="advice-list">
             {a.tips.map((tip) => <li key={tip}>{t(tip)}</li>)}
           </ul>
@@ -108,7 +127,7 @@ export default function Today({ suburb, stage, isLive, live, slots, official, re
         <div className="progress" role="progressbar" aria-valuenow={pct} aria-valuemin="0" aria-valuemax="100"><i style={{ width: pct + '%' }} /></div>
         {CHECKLIST_GROUPS.map((g) => (
           <div key={g.id}>
-            <h3>{g.icon} {t(g.label)}</h3>
+            <h3><Icon name={g.icon} /> {t(g.label)}</h3>
             <ul className="list">
               {CHECKLIST.filter((c) => c.group === g.id).map((c) => (
                 <li key={c.id} className="row">
@@ -134,7 +153,7 @@ export default function Today({ suburb, stage, isLive, live, slots, official, re
           {offers.slice(0, 3).map((s) => (
             <li key={s.id} className="row">
               <div>
-                <p><strong>{SHARE_CATEGORIES[s.category].icon} {s.title}</strong></p>
+                <p><strong><Icon name={SHARE_CATEGORIES[s.category].icon} /> {s.title}</strong></p>
                 <p className="muted small">{s.name} · {timeAgo(s.ts, t)}{s.sample ? ` · ${t('Sample')}` : ''}</p>
               </div>
             </li>
@@ -147,9 +166,9 @@ export default function Today({ suburb, stage, isLive, live, slots, official, re
 }
 
 const DAYNAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
-const ALERT_ICON = { rain: '🌧️', heat: '🥵', cold: '🥶', wind: '💨' }
+const ALERT_ICON = { rain: 'rain', heat: 'thermometer', cold: 'snowflake', wind: 'wind' }
 const dayLabel = (iso) => DAYNAMES[new Date(iso + 'T12:00:00').getDay()]
-const icon = (d) => (d.rain >= 5 ? '🌧️' : d.max >= 30 ? '☀️' : d.rainProb >= 50 ? '🌦️' : '⛅')
+const icon = (d) => (d.rain >= 5 ? 'rain' : d.max >= 30 ? 'sun' : d.rainProb >= 50 ? 'rain' : 'cloud-sun')
 
 function Weather({ wx, t }) {
   if (wx.status === 'error') return null
@@ -171,7 +190,7 @@ function Weather({ wx, t }) {
         <ul className="wx-alerts">
           {alerts.slice(0, 3).map((a, i) => (
             <li key={i} className={a.level}>
-              <strong>{ALERT_ICON[a.type]} {t(a.label)}</strong>{' '}
+              <strong><Icon name={ALERT_ICON[a.type]} /> {t(a.label)}</strong>{' '}
               {a.level === 'warning' ? t('Warning') : t('Watch')} · {dayLabel(a.date)} · {a.value}{a.unit}
             </li>
           ))}
@@ -181,7 +200,7 @@ function Weather({ wx, t }) {
         {days.map((d) => (
           <div key={d.date} className="wx-day">
             <span className="muted small">{dayLabel(d.date)}</span>
-            <span className="wx-icon" aria-hidden="true">{icon(d)}</span>
+            <span className="wx-icon" aria-hidden="true"><Icon name={icon(d)} /></span>
             <strong>{Math.round(d.max)}°</strong>
             <span className="muted small">{Math.round(d.min)}°</span>
             <span className="muted small">{d.rain >= 0.5 ? `${Math.round(d.rain)}mm` : '–'}</span>

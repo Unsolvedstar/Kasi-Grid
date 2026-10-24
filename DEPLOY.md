@@ -16,3 +16,7 @@ A disk needs a paid plan. For a free tier, set `DATABASE_URL` and `DATABASE_AUTH
 
 ## Showing the forecast in a demo
 The forecast needs history. On a throwaway demo database only: `DATABASE_URL=... node scripts/demo-history.mjs alex`. Never run it on a database with real community data.
+
+## Judge demo instance
+
+Deploy a separate copy with `DEMO_MODE=true` and its own database (and a throwaway `ADMIN_TOKEN`). It opens with verified outages, a forecast and a typical duration, and refreshes the live outages every 30 minutes. Keep the pilot on a different deployment with `DEMO_MODE` unset, because demo rows look like real reports.

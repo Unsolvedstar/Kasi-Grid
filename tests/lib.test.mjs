@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { waterCost, slotsFor, businessAnalysis, savingsTips, waterStatus, outageHoursPerMonth, distanceKm } from '../src/lib.js'
+import { waterCost, slotsFor, businessAnalysis, savingsTips, waterStatus, outageHoursPerMonth, distanceKm, slotsToIcs } from '../src/lib.js'
 import { BUSINESS_TYPES, SUBURBS } from '../src/data.js'
 
 test('water tariff: first 6 kL are free, bands and VAT apply', () => {
@@ -118,4 +118,50 @@ test('nextWindow: reports "now" when inside the window', () => {
   const w = nextWindow(1, 'morning', sast(5, 9))
   assert.equal(w.now, true)
   assert.equal(w.start, sast(5, 9))
+})
+
+test('calendar export: valid iCalendar with one event and reminder per slot', () => {
+  const from = new Date('2026-03-02T00:00:00Z')
+  const slots = slotsFor(7, 4, from, 2)
+  const ics = slotsToIcs(slots, { area: 'Alexandra, Ext 7', official: false, stage: 4, now: from })
+  assert.ok(ics.startsWith('BEGIN:VCALENDAR\r\n') && ics.endsWith('END:VCALENDAR\r\n'))
+  assert.equal(ics.match(/BEGIN:VEVENT/g).length, slots.length)
+  assert.equal(ics.match(/TRIGGER:-PT30M/g).length, slots.length)
+  assert.match(ics, /DTSTART:\d{8}T\d{6}Z/)
+  assert.match(ics, /Alexandra\\, Ext 7/, 'commas are escaped')
+  assert.match(ics, /illustrative/i)
+  assert.equal(new Set(ics.match(/UID:.*/g)).size, slots.length, 'UIDs are unique')
+})
+
+test('loadshedding-free counter matches Eskom (504 days on 2 October 2026)', async () => {
+  const { daysWithoutLoadshedding } = await import('../src/lib.js')
+  assert.equal(daysWithoutLoadshedding(new Date('2026-10-02T12:00:00+02:00')), 504)
+  assert.equal(daysWithoutLoadshedding(new Date('2020-01-01')), 0)
+})
+
+test('live outage cost grows with time and respects backup, tank and cold-box', async () => {
+  const { liveOutageCost } = await import('../src/lib.js')
+  const { BUSINESS_TYPES } = await import('../src/data.js')
+  const type = BUSINESS_TYPES.spaza
+  const b = { dailyRevenue: 1500, backup: 'none', coldStock: 2000, coldBackup: false, tank: false }
+  const now = Date.now()
+  const h8 = { type: 'power', since: now - 8 * 3600000 }
+  const at = (h) => liveOutageCost(b, type, { type: 'power', since: now - h * 3600000 }, now)
+  assert.equal(at(0).loss, 0)
+  assert.equal(at(3).stock, 0, 'fridge still cold inside 4 hours')
+  assert.ok(at(8).stock > 0 && at(8).loss > at(3).loss)
+  assert.ok(at(100).stock <= 1000, 'stock risk caps at half')
+  assert.ok(liveOutageCost({ ...b, backup: 'solar' }, type, h8, now).sales < at(8).sales)
+  assert.equal(liveOutageCost({ ...b, coldBackup: true }, type, h8, now).stock, 0)
+  const w = (tank) => liveOutageCost({ ...b, tank }, BUSINESS_TYPES.carwash, { type: 'water', since: now - 12 * 3600000 }, now).loss
+  assert.ok(w(true) < w(false))
+})
+
+test('expected restoration time: start plus typical length, overdue once past it', async () => {
+  const { expectedBack } = await import('../src/lib.js')
+  const since = Date.parse('2026-10-08T10:00:00Z')
+  const e = expectedBack(since, 5, since + 3600000)
+  assert.equal(e.at, since + 5 * 3600000)
+  assert.equal(e.overdue, false)
+  assert.equal(expectedBack(since, 5, since + 6 * 3600000).overdue, true)
 })

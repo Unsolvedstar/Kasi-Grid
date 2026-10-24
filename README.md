@@ -1,6 +1,6 @@
 # Kasi Grid
 
-Community resilience for South African townships: live loadshedding status, resident-confirmed outage reports, a neighbourhood sharing board, food access, and savings and business-resilience calculators.
+Community resilience for South African townships. Eskom has reported no loadshedding since 16 May 2025 (504 days on 2 October 2026), but households still lose power to load reduction, cable theft and faults, and Johannesburg's water supply keeps failing. Kasi Grid turns neighbour reports into verified local outage alerts. It also has the official loadshedding status for when it returns,  resident-confirmed outage reports, a neighbourhood sharing board, food access, and savings and business-resilience calculators.
 
 ## Run it
 
@@ -21,12 +21,28 @@ Docker: `docker build -t kasi-grid . && docker run -p 3000:3000 -v kasi-data:/ap
 ## Tests
 
 ```
-npm test    # 56 tests: calculations, translations, and the full API including admin and rate limits (starts its own server and temporary database)
+npm test    # 86 tests: calculations, translations, and the full API including admin and rate limits (starts its own server and temporary database)
 ```
 
 ## Outage Pulse
 
 When 3 or more different devices report or confirm the same power or water problem in one suburb within 6 hours, the Today tab shows a **verified outage** card (`GET /api/pulse`). Neighbours can vote "It is back on for me"; once half of them (minimum 2) agree, the card turns green. People can opt in to a phone notification when a new verified outage appears while the app is open. Sample data is ignored. For a demo, run `node scripts/demo-seed.mjs http://localhost:3000 alex` to create one.
+
+## Outage duration estimate
+
+Next to the weekday and time-of-day pattern, `GET /api/forecast` returns `duration`: how long past outages in the suburb lasted, from the time of a report to the first "it is back on" vote. The median needs 3 past outages, and the "1 in 5 last this long" figure needs 5. It shows on the verified-outage card and in the medical power plan, which compares it with the battery runtime. For a demo, `scripts/demo-history.mjs` writes history that includes back-on votes.
+
+## Demo mode
+
+`DEMO_MODE=true` fills the server with ten weeks of outage history (with "back on" votes) and keeps two fresh verified outages on the map, refreshed every 30 minutes. A judge opening the app always sees verified outages, a forecast and a typical duration. The rows look like real reports and count in `/api/stats`, so **never enable it on a pilot or production database**. Without the variable nothing changes.
+
+## Care tab (home care booking)
+
+Modelled on the SweepSouth approach, for care at home. A family picks companion care, post-op help, a personal care assistant, or equipment only, adds equipment, and sees a fixed price before booking. The server sets the price (`shared/care.js`) and offers the job to the 3 nearest sample carers within 15 km. Oxygen needs a prescription approved first. The first carer to accept takes the job, a decline moves it to the next carer, and the family can cancel. Bookings are private to the device and are never cached by the service worker.
+
+The same tab has a **medical power plan**: enter a device's watts and a battery's watt-hours to see how long it runs, set against any verified outage in the suburb and the outage forecast. It stays on the phone and is not medical advice.
+
+**Not built yet:** payments, real carers and vetting, supplier prices (all rates, equipment prices and carers are placeholders), and a carer app. The `/admin` page has a **Care bookings** panel that stands in for the carer app (approve prescription, accept or decline as an offered carer, mark done). A fuller version of this idea lives in the separate `sweepsouth/homecare-app` project (Expo and Supabase).
 
 ## Moderation (admin page)
 
@@ -38,7 +54,7 @@ Open `/admin` and sign in with the server's `ADMIN_TOKEN`. It lists reports, boa
 
 ## Languages
 
-English, isiZulu, Sesotho and Afrikaans, chosen from the header (the browser language is used the first time). **The isiZulu, Sesotho and Afrikaans texts are drafts that have not been reviewed by native speakers**, and the language menu says so. Have fluent speakers check `src/locales.js` before a public launch. Coverage: the header, Today tab, alerts, board, checklist and headings in every tab. Long explanatory paragraphs on the Save, Business and Food tabs are still English. Anything missing falls back to English.
+English, isiZulu, Sesotho and Afrikaans, chosen from the header (the browser language is used the first time). **The isiZulu, Sesotho and Afrikaans texts are drafts that have not been reviewed by native speakers**, and the language menu says so. Have fluent speakers check `src/locales.js` before a public launch. Coverage: the header, Today tab, alerts, board, checklist and headings in every tab. The Save tab is now translated apart from the generated tip text; long explanatory paragraphs on the Business and Food tabs are still English. Anything missing falls back to English.
 
 ## Installable and offline
 
@@ -57,6 +73,7 @@ The production build is a PWA. On a phone, use the browser's "Add to home screen
 | Variable | Purpose |
 |---|---|
 | `PORT` | Server port (default 3000) |
+| `DEMO_MODE` | `true` only for the judge-facing demo instance. See Demo mode |
 | `ADMIN_TOKEN` | Enables the `/admin` moderation page |
 | `WRITE_LIMIT` | Writes per minute per IP (default 30) |
 | `ADMIN_LIMIT` | Admin requests per minute per IP (default 60) |
@@ -119,3 +136,9 @@ Loadshedding: Eskom's national stage applies to Eskom-supplied areas. The City o
 ## Not done yet
 
 Accounts and phone verification, push notifications, native review of translations and translating the long help texts, official 2026/27 water tariffs (eThekwini has none yet; the rest are estimates or single-source), banning repeat abusers by device.
+
+## Street tab (the street as a living picture)
+
+The first tab draws the suburb as a flower of homes. Each home has its own tolerance, so a 40% outage risk darkens about 40% of homes, and you can drag a slider through the next 48 hours to watch the street dim and relight. Power risk comes from the loadshedding slots, the suburb's own outage pattern and any verified outage (`shared/sense.js`, tested in `tests/sense.test.mjs`). Blue motes show water flow, gold lights are neighbours offering help on the Share tab, and threads of light run from them to dark homes. Ripples appear when neighbours report.
+
+It also works with no reading at all: **Hear it** plays a chord made on the phone that goes out of tune and sinks as risk rises, **Tell me** speaks a summary and gives a heartbeat vibration (one soft beat calm, double for risk, long for an outage). Dots are example homes, not real addresses. The speech voice depends on the phone, and isiZulu, Sesotho and Afrikaans strings are not yet translated for this tab.

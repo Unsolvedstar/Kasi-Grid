@@ -29,6 +29,14 @@ export async function migrate() {
       `CREATE TABLE IF NOT EXISTS prices (
         place_id TEXT NOT NULL, item TEXT NOT NULL, price REAL NOT NULL, ts INTEGER NOT NULL, device TEXT, PRIMARY KEY (place_id, item))`,
       `CREATE TABLE IF NOT EXISTS flags (kind TEXT, target_id INTEGER, device TEXT, PRIMARY KEY (kind, target_id, device))`,
+      `CREATE TABLE IF NOT EXISTS care_bookings (
+        id INTEGER PRIMARY KEY AUTOINCREMENT, device TEXT NOT NULL, suburb TEXT NOT NULL, service TEXT NOT NULL, hours INTEGER NOT NULL DEFAULT 0,
+        start_ts INTEGER NOT NULL, patient TEXT NOT NULL, needs TEXT NOT NULL DEFAULT '', landmark TEXT NOT NULL DEFAULT '', equipment TEXT NOT NULL DEFAULT '[]',
+        total INTEGER NOT NULL DEFAULT 0, quoted TEXT NOT NULL DEFAULT '[]', status TEXT NOT NULL, offered TEXT NOT NULL DEFAULT '[]',
+        declined TEXT NOT NULL DEFAULT '[]', carer TEXT, created INTEGER NOT NULL, updated INTEGER NOT NULL)`,
+      `CREATE TABLE IF NOT EXISTS restock_lines (
+        cycle TEXT NOT NULL, suburb TEXT NOT NULL, device TEXT NOT NULL, shop TEXT NOT NULL, item TEXT NOT NULL, qty INTEGER NOT NULL,
+        ts INTEGER NOT NULL, PRIMARY KEY (cycle, suburb, device, item))`,
       `CREATE TABLE IF NOT EXISTS cache (key TEXT PRIMARY KEY, value TEXT NOT NULL, ts INTEGER NOT NULL)`,
       `CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT)`,
       `CREATE TABLE IF NOT EXISTS suburb_areas (suburb TEXT PRIMARY KEY, area_id TEXT NOT NULL, area_name TEXT, updated INTEGER)`,
@@ -36,6 +44,24 @@ export async function migrate() {
     ],
     'write',
   )
+  // Older databases predate delivery bookings: add the columns if they are missing.
+  for (const col of ["pickup TEXT NOT NULL DEFAULT ''", 'urgent INTEGER NOT NULL DEFAULT 0', 'fee INTEGER NOT NULL DEFAULT 0']) {
+    try {
+      await db.execute(`ALTER TABLE care_bookings ADD COLUMN ${col}`)
+    } catch {
+      /* column already exists */
+    }
+  }
+  // Reports and posts can carry an exact pin (and the GPS accuracy in metres).
+  for (const table of ['reports', 'shares']) {
+    for (const col of ['lat REAL', 'lng REAL', 'acc INTEGER']) {
+      try {
+        await db.execute(`ALTER TABLE ${table} ADD COLUMN ${col}`)
+      } catch {
+        /* column already exists */
+      }
+    }
+  }
   const seeded = await db.execute(`SELECT value FROM meta WHERE key = 'seeded'`)
   if (seeded.rows.length) return
   const now = Date.now()
@@ -43,12 +69,12 @@ export async function migrate() {
     ['alex', 'power', 'Transformer humming loudly on 4th Ave, lights flickering.', 2, 4],
     ['diepsloot', 'water', 'Water gushing from a burst pipe near the clinic.', 5, 7],
     ['soweto', 'road', 'Taxi rank flooded, minibuses using the back road.', 1, 1],
-    ['katlehong', 'power', 'No power since last night, not on the loadshedding schedule.', 9, 2],
+    ['katlehong', 'power', 'No power since last night, only our street. Not loadshedding.', 9, 2],
   ]
   const shares = [
     ['offer', 'power', 'soweto', 'Phone & power bank charging', 'I have a solar setup. Free charging from 08:00 to 20:00, bring your own cable.', 'Thandi', 6, 3],
     ['offer', 'water', 'diepsloot', 'Borehole water, 25L free per household', 'Bring your own containers.', 'Bra Sipho', 4, 9],
-    ['request', 'food', 'alex', 'Need freezer space for a few hours', 'Stock from my tuck shop will thaw during loadshedding tonight.', 'Mama Lindi', 3, 1],
+    ['request', 'food', 'alex', 'Need freezer space for a few hours', 'Stock from my tuck shop will thaw during the outage tonight.', 'Mama Lindi', 3, 1],
     ['offer', 'transport', 'mamelodi', 'Lift to Denneboom station 06:00 weekdays', '3 seats free, R15 petrol contribution.', 'Kagiso', 20, 2],
     ['request', 'water', 'katlehong', 'Elderly neighbour needs water carried', 'Two 20L buckets from the tanker to Section 5.', 'Nomsa', 1, 0],
   ]

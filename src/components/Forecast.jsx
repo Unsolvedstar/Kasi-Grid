@@ -1,8 +1,9 @@
 import { useT } from '../i18n.jsx'
+import Icon from './Icon.jsx'
 import { useForecast } from '../api.js'
 import { DAYS } from '../../shared/forecast.js'
 
-const TYPE = { power: { icon: '⚡', label: 'Power' }, water: { icon: '💧', label: 'Water' } }
+const TYPE = { power: { icon: 'zap', label: 'Power' }, water: { icon: 'droplet', label: 'Water' } }
 
 // "Intelligence": what this suburb's own report history says about when outages tend to happen, plus an early warning.
 export default function Forecast({ suburb, incidents }) {
@@ -22,14 +23,14 @@ export default function Forecast({ suburb, incidents }) {
       </div>
       {f.building.map((b) => (
         <p key={b.type} className="notice" role="status">
-          {TYPE[b.type].icon} {t('Early warning: 2 neighbours just reported {type} problems. One more confirms a verified outage.', { type: t(TYPE[b.type].label).toLowerCase() })}
+          <Icon name={TYPE[b.type].icon} /> {t('Early warning: 2 neighbours just reported {type} problems. One more confirms a verified outage.', { type: t(TYPE[b.type].label).toLowerCase() })}
         </p>
       ))}
       <ul className="list">
         {rows.map(({ type, p }) => (
           <li key={type} className="row">
             <div>
-              <p><strong>{TYPE[type].icon} {t(TYPE[type].label)}</strong></p>
+              <p><strong><Icon name={TYPE[type].icon} /> {t(TYPE[type].label)}</strong></p>
               {p.pattern ? (
                 <>
                   <p>{t('Most likely {when}.', { when: when(p) })} {p.next?.now ? t('That window is open now, so prepare.') : t('Prepare the evening before.')}</p>

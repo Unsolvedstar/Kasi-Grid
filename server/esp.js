@@ -1,5 +1,5 @@
 import { db } from './db.js'
-import { SUBURBS } from '../shared/suburbs.js'
+import { SUBURBS, findSuburb } from '../shared/suburbs.js'
 
 // EskomSePush Business API 3.1: real loadshedding time slots per area.
 //
@@ -89,7 +89,7 @@ export async function areasNearby(lat, lng, radiusKm = 3, limit = 12) {
   return remember((j.areas || []).slice(0, limit).map(cleanArea))
 }
 
-const suburbById = (id) => SUBURBS.find((x) => x.id === id)
+const suburbById = (id) => findSuburb(id)
 
 // The areas around a suburb, for the "choose your area" list. One credit per suburb a week.
 export async function nearbyForSuburb(suburbId) {

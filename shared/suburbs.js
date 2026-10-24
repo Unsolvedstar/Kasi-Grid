@@ -79,3 +79,64 @@ export const SUBURBS = [
   { id: 'galeshewe', name: 'Galeshewe', city: 'solplaatje', lat: -28.7237, lng: 24.7474, group: 9 },
   { id: 'roodepan', name: 'Roodepan', city: 'solplaatje', lat: -28.6648, lng: 24.7169, group: 5 },
 ]
+
+// Closest covered suburb to a coordinate, or null when nothing is within maxKm.
+export function nearestSuburb(lat, lng, maxKm = 80) {
+  const rad = Math.PI / 180
+  let best = null
+  let bestKm = Infinity
+  for (const s of SUBURBS) {
+    const a = Math.sin(((s.lat - lat) * rad) / 2) ** 2 + Math.cos(lat * rad) * Math.cos(s.lat * rad) * Math.sin(((s.lng - lng) * rad) / 2) ** 2
+    const km = 12742 * Math.asin(Math.sqrt(a))
+    if (km < bestKm) { best = s; bestKm = km }
+  }
+  return bestKm <= maxKm ? best : null
+}
+
+// ---- Anywhere in South Africa -------------------------------------------------------------------------------------
+// Beyond the curated suburbs above, any spot in the country belongs to a community: a grid cell about 2 km across, found
+// from coordinates alone. People in the same cell share reports, alerts and help, wherever they live.
+export const OTHER_CITY = { name: 'Your community', province: 'South Africa' }
+export const cityOf = (s) => CITIES[s.city] ?? OTHER_CITY
+
+const SA = { s: -35.2, n: -21.8, w: 16.3, e: 33.2 }
+const CELL = 50 // cells per degree of latitude or longitude
+const GRID = /^g(-?\d{1,5})_(-?\d{1,5})$/
+export const inSouthAfrica = (lat, lng) => Number.isFinite(lat) && Number.isFinite(lng) && lat >= SA.s && lat <= SA.n && lng >= SA.w && lng <= SA.e
+export const communityId = (lat, lng) => `g${Math.round(lat * CELL)}_${Math.round(lng * CELL)}`
+
+// Names people give their community (and ones looked up for others), registered by the app so every screen can show them.
+export const placeNames = new Map()
+
+export function findSuburb(id) {
+  const curated = SUBURBS.find((s) => s.id === id)
+  if (curated) return curated
+  const m = typeof id === 'string' ? GRID.exec(id) : null
+  if (!m) return undefined
+  const lat = Number(m[1]) / CELL
+  const lng = Number(m[2]) / CELL
+  if (!inSouthAfrica(lat, lng)) return undefined
+  return {
+    id, name: placeNames.get(id) || `Area ${lat.toFixed(2)}, ${lng.toFixed(2)}`, city: 'other', lat, lng,
+    group: ((Math.abs(Number(m[1]) * 7 + Number(m[2]) * 13)) % 16) + 1, custom: true,
+  }
+}
+export const isSuburbId = (id) => !!findSuburb(id)
+
+export function distKm(a, b) {
+  const rad = Math.PI / 180
+  const h = Math.sin(((b.lat - a.lat) * rad) / 2) ** 2 + Math.cos(a.lat * rad) * Math.cos(b.lat * rad) * Math.sin(((b.lng - a.lng) * rad) / 2) ** 2
+  return 12742 * Math.asin(Math.sqrt(h))
+}
+
+// The communities to show on a map around `suburb`: its city's suburbs, or for a custom community itself plus any
+// community within `km` that has something happening (`ids` are the communities that appear in reports or outages).
+export function around(suburb, ids = [], km = 25) {
+  if (!suburb.custom) return SUBURBS.filter((s) => s.city === suburb.city)
+  const out = [suburb]
+  for (const id of new Set(ids)) {
+    const s = id === suburb.id ? null : findSuburb(id)
+    if (s && distKm(s, suburb) <= km) out.push(s)
+  }
+  return out
+}

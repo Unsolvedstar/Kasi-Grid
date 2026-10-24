@@ -169,3 +169,11 @@ export function waterCostFor(cityId, kl) {
   }
   return w.vatIncluded ? cost : cost * VAT
 }
+
+// Used for communities outside the cities above: no verified bands, so households enter their own rate.
+export const NO_TARIFF = {
+  effective: '',
+  water: { status: 'unavailable', note: 'We have no verified water tariff for this municipality yet. Enter the rand-per-kL rate from your bill.' },
+  electricity: { status: 'unavailable', note: 'We have no verified electricity tariff for this municipality yet. Check your prepaid or municipal bill.' },
+  sources: [],
+}

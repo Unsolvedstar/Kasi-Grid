@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { timeAgo } from '../lib.js'
-import { SUBURBS } from '../../shared/suburbs.js'
+import { SUBURBS, findSuburb } from '../../shared/suburbs.js'
 
 const KINDS = { reports: 'Reports', shares: 'Board posts', places: 'Places' }
 const FILTERS = { attention: 'Needs attention', all: 'All', hidden: 'Hidden' }
@@ -14,6 +14,43 @@ async function call(token, path, body) {
   const data = await r.json().catch(() => null)
   if (!r.ok) throw Object.assign(new Error(data?.error || `Request failed (${r.status})`), { status: r.status })
   return data
+}
+
+function CarePanel({ token }) {
+  const [rows, setRows] = useState(null)
+  const [msg, setMsg] = useState('')
+  const load = useCallback(() => call(token, '/care').then((d) => setRows(d.bookings)).catch((e) => setMsg(e.message)), [token])
+  useEffect(() => { load() }, [load])
+  const act = (id, action, carer) => call(token, `/care/${id}`, { action, carer }).then(() => { setMsg(''); load() }).catch((e) => setMsg(e.message))
+  return (
+    <section className="card">
+      <div className="bar"><h2>Care bookings</h2><button className="ghost" onClick={load}>Refresh</button></div>
+      <p className="muted small">Stand-in for the carer app. Accept or decline as one of the carers who were offered a job.</p>
+      {msg && <p className="notice" role="alert">{msg}</p>}
+      {rows && rows.length === 0 && <p className="muted">No bookings yet.</p>}
+      <ul className="list">
+        {(rows || []).map((b) => (
+          <li key={b.id} className="row">
+            <div>
+              <p><strong>#{b.id} {b.service}{b.hours ? ` · ${b.hours} h` : ''}</strong> <span className="badge sample">{b.status}</span></p>
+              <p className="muted small">{findSuburb(b.suburb)?.name || b.suburb} · {b.patient} · {b.landmark} · R{b.total}{b.equipment.length ? ' · ' + b.equipment.join(', ') : ''}</p>
+              {b.carer && <p className="small">Carer: {b.carer}</p>}
+            </div>
+            <div className="stack">
+              {b.status === 'awaiting_prescription' && <button className="primary" onClick={() => act(b.id, 'approve_rx')}>Approve prescription</button>}
+              {b.status === 'offered' && b.offered.map((c) => (
+                <span key={c.id} className="stack">
+                  <button className="primary" onClick={() => act(b.id, 'accept', c.id)}>{c.name} accepts</button>
+                  <button className="ghost" onClick={() => act(b.id, 'decline', c.id)}>{c.name} declines</button>
+                </span>
+              ))}
+              {b.status === 'accepted' && <button className="ghost" onClick={() => act(b.id, 'complete')}>Mark done</button>}
+            </div>
+          </li>
+        ))}
+      </ul>
+    </section>
+  )
 }
 
 export default function Admin() {
@@ -131,6 +168,7 @@ export default function Admin() {
       )}
 
       {data?.namc && <NamcPanel namc={data.namc} token={token} reload={() => load(token)} />}
+      <CarePanel token={token} />
       <EspPanel token={token} />
 
       <section className="card">
@@ -292,7 +330,7 @@ function EspPanel({ token }) {
             <ul className="list">
               {info.mappings.map((m) => (
                 <li key={m.suburb} className="row">
-                  <div><strong>{SUBURBS.find((s) => s.id === m.suburb)?.name || m.suburb}</strong><p className="muted small">{m.areaName} ({m.areaId})</p></div>
+                  <div><strong>{findSuburb(m.suburb)?.name || m.suburb}</strong><p className="muted small">{m.areaName} ({m.areaId})</p></div>
                   <button className="ghost" onClick={() => unmap(m.suburb)}>Unlink</button>
                 </li>
               ))}

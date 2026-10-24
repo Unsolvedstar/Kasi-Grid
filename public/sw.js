@@ -3,7 +3,7 @@
 // - Built assets (hashed filenames): cache first.
 // - API reads: network first, fall back to the last response, so reports and the board still show offline.
 // - Anything that is not a GET (posting reports etc.) is never cached.
-const VERSION = 'v2'
+const VERSION = 'v3'
 const SHELL = 'kg-shell-' + VERSION
 const ASSETS = 'kg-assets-' + VERSION
 const API = 'kg-api-' + VERSION
@@ -19,14 +19,16 @@ self.addEventListener('activate', (e) => {
   )
 })
 
-async function networkFirst(req, cacheName, fallbackUrl) {
+// `key` is what the response is cached under. The original request is always the one sent, so headers such as X-Device-Id reach the server.
+async function networkFirst(req, cacheName, fallbackUrl, key) {
   const cache = await caches.open(cacheName)
+  const slot = fallbackUrl || key || req
   try {
     const res = await fetch(req)
-    if (res.ok) cache.put(fallbackUrl || req, res.clone())
+    if (res.ok) cache.put(slot, res.clone())
     return res
   } catch {
-    const hit = await cache.match(fallbackUrl || req)
+    const hit = await cache.match(slot)
     if (hit) return hit
     throw new Error('offline')
   }
@@ -39,9 +41,10 @@ self.addEventListener('fetch', (e) => {
   if (url.origin !== self.location.origin) return // map tiles etc. go straight to the network
 
   if (url.pathname.startsWith('/api/admin')) return // moderation data is never cached
+  if (url.pathname.startsWith('/api/care')) return // bookings are private to the device and are never cached
   if (url.pathname.startsWith('/api/')) {
     // The device id header is per-user, but responses only differ in "mine" flags, so key on the URL.
-    e.respondWith(networkFirst(new Request(url.href), API).catch(() => new Response(JSON.stringify({ error: 'offline' }), { status: 503, headers: { 'Content-Type': 'application/json' } })))
+    e.respondWith(networkFirst(req, API, null, new Request(url.href)).catch(() => new Response(JSON.stringify({ error: 'offline' }), { status: 503, headers: { 'Content-Type': 'application/json' } })))
     return
   }
   if (req.mode === 'navigate') {

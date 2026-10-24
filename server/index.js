@@ -7,11 +7,15 @@ import express from 'express'
 import rateLimit from 'express-rate-limit'
 import { db, migrate } from './db.js'
 import { eskomStage, outletsFor } from './live.js'
-import { CITIES, SUBURBS } from '../shared/suburbs.js'
+import { CITIES, SUBURBS, distKm, findSuburb, inSouthAfrica, isSuburbId } from '../shared/suburbs.js'
 import { STAPLES as STAPLE_LIST } from '../shared/namc.js'
 import { weatherFor } from './weather.js'
 import { autoLink, callsToday, cityStage, espEnabled, listMappings, nearbyForSuburb, quota, removeMapping, scheduleFor, searchAreas, searchNearSuburb, setMapping, startEspLinking, testConnection } from './esp.js'
-import { forecast } from '../shared/forecast.js'
+import { durationStats, forecast } from '../shared/forecast.js'
+import { startDemo } from './demo.js'
+import { buildingsFor } from './buildings.js'
+import { EQUIPMENT, MAX_HOURS, MIN_HOURS, PICKUPS, SERVICES, isDelivery, nearestCarers, personName, poolFor, quote } from '../shared/care.js'
+import { CATALOGUE, ITEM_IDS, MAX_QTY, TIERS, cycleOf } from '../shared/restock.js'
 import { foodReference, namcStatus, refreshNamc, startNamcSchedule } from './namc.js'
 
 const app = express()
@@ -28,7 +32,8 @@ const REPORT_TYPES = ['power', 'water', 'road', 'other']
 const SHARE_CATEGORIES = ['power', 'water', 'food', 'transport', 'other']
 const PLACE_TYPES = ['spaza', 'supermarket', 'foodbank', 'garden', 'market', 'clinic', 'hospital', 'water', 'transport']
 const STAPLES = STAPLE_LIST.map((x) => x.id)
-const SUBURB_IDS = SUBURBS.map((s) => s.id)
+// Curated suburbs, or any ~2 km grid community in South Africa (see shared/suburbs.js).
+const SUBURB_IDS = { includes: isSuburbId }
 const FLAG_HIDE_AT = 3
 const WEEK = 7 * 24 * 3600 * 1000
 
@@ -98,6 +103,18 @@ api.get('/outlets', wrap(async (req, res) => {
   res.json({ outlets })
 }))
 
+// Real building positions around a suburb centre, for the satellite Street view.
+api.get('/buildings', wrap(async (req, res) => {
+  let pts
+  try {
+    pts = await buildingsFor(String(req.query.suburb || ''))
+  } catch (e) {
+    return res.status(502).json({ error: 'Building data is busy, try again later' })
+  }
+  if (!pts) throw bad('Unknown suburb')
+  res.set('Cache-Control', 'public, max-age=86400').json({ pts })
+}))
+
 // National food price reference: the newest NAMC report we could import, or the bundled one.
 api.get('/food-reference', wrap(async (req, res) => {
   res.json(await foodReference())
@@ -153,10 +170,22 @@ api.get('/weather', wrap(async (req, res) => {
   res.json(w)
 }))
 
+// An optional exact pin: must be inside South Africa and near the community it is posted to.
+const pinOf = (b, suburb) => {
+  if (b.lat == null && b.lng == null) return { lat: null, lng: null, acc: null }
+  const lat = Number(b.lat)
+  const lng = Number(b.lng)
+  if (!inSouthAfrica(lat, lng)) throw bad('That location is outside South Africa')
+  const home = findSuburb(suburb)
+  if (distKm(home, { lat, lng }) > (home.custom ? 5 : 40)) throw bad('Your pin is too far from your community')
+  const acc = Number.isFinite(Number(b.acc)) ? Math.min(5000, Math.max(0, Math.round(Number(b.acc)))) : null
+  return { lat: Math.round(lat * 1e6) / 1e6, lng: Math.round(lng * 1e6) / 1e6, acc }
+}
+
 // ---- reports
 const mapReport = (r) => ({
   id: Number(r.id), suburb: r.suburb, type: r.type, text: r.text, ts: Number(r.ts), confirms: Number(r.confirms),
-  sample: !!r.sample, mine: !!r.mine, confirmedByMe: !!r.cby,
+  sample: !!r.sample, mine: !!r.mine, confirmedByMe: !!r.cby, lat: r.lat == null ? null : Number(r.lat), lng: r.lng == null ? null : Number(r.lng),
 })
 
 api.get('/reports', wrap(async (req, res) => {
@@ -176,7 +205,8 @@ api.post('/reports', wrap(async (req, res) => {
   const suburb = oneOf(b.suburb, SUBURB_IDS, 'suburb')
   const type = oneOf(b.type, REPORT_TYPES, 'type')
   const body = text(b.text, 'Description', 280)
-  const ins = await db.execute({ sql: 'INSERT INTO reports (suburb,type,text,ts,confirms,owner) VALUES (?,?,?,?,1,?)', args: [suburb, type, body, Date.now(), d] })
+  const pin = pinOf(b, suburb)
+  const ins = await db.execute({ sql: 'INSERT INTO reports (suburb,type,text,ts,confirms,owner,lat,lng,acc) VALUES (?,?,?,?,1,?,?,?,?)', args: [suburb, type, body, Date.now(), d, pin.lat, pin.lng, pin.acc] })
   await db.execute({ sql: 'INSERT OR IGNORE INTO report_confirms (report_id, device) VALUES (?,?)', args: [Number(ins.lastInsertRowid), d] })
   res.status(201).json({ id: Number(ins.lastInsertRowid) })
 }))
@@ -253,7 +283,14 @@ api.get('/forecast', wrap(async (req, res) => {
     e.devices.push(r.dev)
     by.set(k, e)
   }
-  res.json(forecast([...by.values()]))
+  // Past outages that neighbours marked "back on": time from the report to the first "back on" vote.
+  const back = await db.execute({
+    sql: `SELECT r.type, r.ts, MIN(x.ts) AS back FROM reports r JOIN report_restored x ON x.report_id = r.id
+          WHERE r.suburb = ? AND r.sample = 0 AND r.hidden = 0 AND r.ts > ? AND r.type IN ('power','water') GROUP BY r.id`,
+    args: [suburb, Date.now() - 90 * 24 * 3600 * 1000],
+  })
+  const hours = (type) => back.rows.filter((r) => r.type === type).map((r) => (Number(r.back) - Number(r.ts)) / 3600000)
+  res.json({ ...forecast([...by.values()]), duration: { power: durationStats(hours('power')), water: durationStats(hours('water')) } })
 }))
 
 // Anonymous community totals for the last 7 days (no samples), shown in the app and on the admin page.
@@ -276,6 +313,7 @@ api.get('/stats', wrap(async (req, res) => {
 const mapShare = (s) => ({
   id: Number(s.id), kind: s.kind, category: s.category, suburb: s.suburb, title: s.title, detail: s.detail, name: s.name,
   ts: Number(s.ts), interested: Number(s.interested), sample: !!s.sample, mine: !!s.mine, interestedByMe: !!s.iby,
+  lat: s.lat == null ? null : Math.round(Number(s.lat) * 1e3) / 1e3, lng: s.lng == null ? null : Math.round(Number(s.lng) * 1e3) / 1e3,
 })
 
 api.get('/shares', wrap(async (req, res) => {
@@ -298,9 +336,10 @@ api.post('/shares', wrap(async (req, res) => {
   const title = text(b.title, 'Title', 100)
   const detail = text(b.detail, 'Details', 400, { required: false })
   const name = text(b.name, 'Name', 30, { required: false }) || 'A neighbour'
+  const pin = pinOf(b, suburb)
   const ins = await db.execute({
-    sql: 'INSERT INTO shares (kind,category,suburb,title,detail,name,ts,owner) VALUES (?,?,?,?,?,?,?,?)',
-    args: [kind, category, suburb, title, detail, name, Date.now(), d],
+    sql: 'INSERT INTO shares (kind,category,suburb,title,detail,name,ts,owner,lat,lng,acc) VALUES (?,?,?,?,?,?,?,?,?,?,?)',
+    args: [kind, category, suburb, title, detail, name, Date.now(), d, pin.lat, pin.lng, pin.acc],
   })
   res.status(201).json({ id: Number(ins.lastInsertRowid) })
 }))
@@ -465,6 +504,48 @@ admin.post('/refresh-namc', wrap(async (req, res) => {
   res.json(await refreshNamc())
 }))
 
+admin.get('/care', wrap(async (req, res) => {
+  const rows = await db.execute('SELECT * FROM care_bookings ORDER BY created DESC LIMIT 100')
+  res.json({ bookings: rows.rows.map((r) => ({ ...shapeBooking(r), offered: JSON.parse(r.offered).map((id) => ({ id, name: carerName(id) })) })) })
+}))
+
+// Stand-in for the carer app: approve a prescription, accept or decline as an offered carer, mark done.
+admin.post('/care/:id', wrap(async (req, res) => {
+  const id = Number(req.params.id)
+  const { action, carer } = req.body || {}
+  const row = (await db.execute({ sql: 'SELECT * FROM care_bookings WHERE id = ?', args: [id] })).rows[0]
+  if (!row) throw new HttpError(404, 'Booking not found')
+  const set = (status, extra = {}) => db.execute({
+    sql: 'UPDATE care_bookings SET status = ?, offered = ?, declined = ?, carer = ?, updated = ? WHERE id = ?',
+    args: [status, extra.offered ?? row.offered, extra.declined ?? row.declined, extra.carer ?? row.carer, Date.now(), id],
+  })
+  if (action === 'approve_rx') {
+    if (row.status !== 'awaiting_prescription') throw bad('This booking is not waiting for a prescription')
+    const offered = row.service === 'equipment' ? [] : nearestCarers(row.suburb, JSON.parse(row.declined), undefined, poolFor(row.service)).map((c) => c.id)
+    await set(row.service === 'equipment' ? 'accepted' : offered.length ? 'offered' : 'unfilled', { offered: JSON.stringify(offered) })
+  } else if (action === 'accept') {
+    if (row.status !== 'offered') throw bad('This booking is not open for offers')
+    if (!JSON.parse(row.offered).includes(carer)) throw bad('That carer was not offered this job')
+    await set('accepted', { carer })
+  } else if (action === 'decline') {
+    if (row.status !== 'offered') throw bad('This booking is not open for offers')
+    const offeredNow = JSON.parse(row.offered)
+    if (!offeredNow.includes(carer)) throw bad('That carer was not offered this job')
+    const declined = [...new Set([...JSON.parse(row.declined), carer])]
+    const left = offeredNow.filter((c) => c !== carer)
+    // Re-offer to the next nearest carer who has not seen it; unfilled when nobody is left.
+    const next = nearestCarers(row.suburb, [...declined, ...left], 1, poolFor(row.service)).map((c) => c.id)
+    const offered = [...left, ...next]
+    await set(offered.length ? 'offered' : 'unfilled', { offered: JSON.stringify(offered), declined: JSON.stringify(declined) })
+  } else if (action === 'complete') {
+    if (row.status !== 'accepted') throw bad('Only an accepted booking can be completed')
+    await set('done')
+  } else {
+    throw bad('action must be approve_rx, accept, decline or complete')
+  }
+  res.json({ ok: true })
+}))
+
 admin.post('/:kind/:id', wrap(async (req, res) => {
   const table = TABLES[req.params.kind]
   if (!table) throw new HttpError(404, 'Unknown item')
@@ -488,6 +569,107 @@ admin.post('/:kind/:id', wrap(async (req, res) => {
 }))
 app.use('/api/admin', admin)
 
+// ---- home care booking (SweepSouth-style): price is set here, the nearest carers get the offer, the first to accept takes it.
+// Carers are samples and there is no payment yet. An admin plays the carer app from /admin.
+const CARE_MAX_OPEN = 5
+const carerName = personName
+const shapeBooking = (r) => {
+  const offered = JSON.parse(r.offered)
+  return {
+    id: Number(r.id), suburb: r.suburb, service: r.service, hours: Number(r.hours), start: Number(r.start_ts), patient: r.patient, needs: r.needs, landmark: r.landmark,
+    equipment: JSON.parse(r.equipment), total: Number(r.total), fee: Number(r.fee), urgent: !!Number(r.urgent), pickup: PICKUPS.find((p) => p.id === r.pickup)?.label || '', quoted: JSON.parse(r.quoted), status: r.status, carer: r.carer ? carerName(r.carer) : null,
+    offeredTo: r.status === 'offered' ? offered.length : 0, created: Number(r.created),
+  }
+}
+
+api.get('/care/catalogue', wrap(async (req, res) => {
+  res.json({ services: SERVICES, equipment: EQUIPMENT, pickups: PICKUPS, minHours: MIN_HOURS, maxHours: MAX_HOURS, sample: true })
+}))
+
+api.post('/care/bookings', wrap(async (req, res) => {
+  const d = needDevice(req)
+  const b = req.body || {}
+  const suburb = oneOf(b.suburb, SUBURB_IDS, 'suburb')
+  const service = oneOf(b.service, Object.keys(SERVICES), 'service')
+  const equipment = Array.isArray(b.equipment) ? b.equipment : []
+  let q
+  try {
+    q = quote({ service, hours: b.hours, equipment, suburb, pickup: b.pickup, urgent: b.urgent === true })
+  } catch (e) {
+    throw bad(e.message)
+  }
+  const urgent = isDelivery(service) && b.urgent === true
+  const start = urgent ? Date.now() : Number(b.start)
+  if (!urgent && (!Number.isFinite(start) || start < Date.now() + 30 * 60 * 1000 || start > Date.now() + 60 * 24 * 3600 * 1000)) throw bad('Pick a start time from 30 minutes to 60 days from now')
+  const patient = text(b.patient, 'Patient first name', 40)
+  const needs = text(b.needs, 'Care needs', 280, { required: false })
+  const landmark = text(b.landmark, 'Street or landmark', 120)
+  const open = await db.execute({ sql: `SELECT COUNT(*) AS n FROM care_bookings WHERE device = ? AND status IN ('awaiting_prescription','offered','accepted')`, args: [d] })
+  if (Number(open.rows[0].n) >= CARE_MAX_OPEN) throw bad('You have too many open bookings. Cancel one first.')
+  const offered = q.needsPrescription || service === 'equipment' ? [] : nearestCarers(suburb, [], undefined, poolFor(service)).map((c) => c.id)
+  const status = q.needsPrescription ? 'awaiting_prescription' : service === 'equipment' ? 'accepted' : offered.length ? 'offered' : 'unfilled'
+  const now = Date.now()
+  const ins = await db.execute({
+    sql: `INSERT INTO care_bookings (device, suburb, service, hours, start_ts, patient, needs, landmark, equipment, total, quoted, status, offered, created, updated, pickup, urgent, fee)
+          VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?14,?14,?15,?16,?17)`,
+    args: [d, suburb, service, q.hours, start, patient, needs, landmark, JSON.stringify(q.equipment), q.total, JSON.stringify(q.quotedItems), status, JSON.stringify(offered), now, isDelivery(service) ? String(b.pickup) : '', urgent ? 1 : 0, q.fee],
+  })
+  res.status(201).json({ id: Number(ins.lastInsertRowid), status, total: q.total, quotedItems: q.quotedItems })
+}))
+
+api.get('/care/bookings', wrap(async (req, res) => {
+  const d = needDevice(req)
+  const rows = await db.execute({ sql: 'SELECT * FROM care_bookings WHERE device = ? ORDER BY created DESC LIMIT 20', args: [d] })
+  res.json({ bookings: rows.rows.map(shapeBooking) })
+}))
+
+api.post('/care/bookings/:id/cancel', wrap(async (req, res) => {
+  const d = needDevice(req)
+  const r = await db.execute({ sql: `UPDATE care_bookings SET status = 'cancelled', updated = ? WHERE id = ? AND device = ? AND status IN ('awaiting_prescription','offered','accepted','unfilled')`, args: [Date.now(), Number(req.params.id), d] })
+  if (!r.rowsAffected) throw new HttpError(404, 'Booking not found or already finished')
+  res.json({ ok: true })
+}))
+
+// ---- pooled restocking: spazas in a suburb order together, and the pool size sets the price tier (see shared/restock.js).
+// One basket per device per cycle; saving it again replaces it. No payment or wholesaler is connected yet.
+api.get('/restock', wrap(async (req, res) => {
+  const suburb = oneOf(String(req.query.suburb || ''), SUBURB_IDS, 'suburb')
+  const cycle = cycleOf()
+  const rows = (await db.execute({ sql: 'SELECT device, shop, item, qty FROM restock_lines WHERE cycle = ? AND suburb = ?', args: [cycle.key, suburb] })).rows
+  const totals = {}
+  const shops = new Set()
+  for (const r of rows) {
+    totals[r.item] = (totals[r.item] || 0) + Number(r.qty)
+    shops.add(r.device)
+  }
+  const d = deviceOf(req)
+  const mine = {}
+  let shop = ''
+  for (const r of rows) if (d && r.device === d) { mine[r.item] = Number(r.qty); shop = r.shop }
+  res.json({ cycle: cycle.key, cutoff: cycle.cutoff, shops: shops.size, totals, mine, shop, catalogue: CATALOGUE, tiers: TIERS, sample: true })
+}))
+
+api.post('/restock', wrap(async (req, res) => {
+  const d = needDevice(req)
+  const b = req.body || {}
+  const suburb = oneOf(b.suburb, SUBURB_IDS, 'suburb')
+  const shop = text(b.shop, 'Shop name', 30)
+  const items = b.items && typeof b.items === 'object' && !Array.isArray(b.items) ? b.items : {}
+  const lines = []
+  for (const [id, q] of Object.entries(items)) {
+    if (!ITEM_IDS.includes(id)) throw bad('Unknown item')
+    if (!Number.isInteger(q) || q < 0 || q > MAX_QTY) throw bad(`Quantity must be a whole number from 0 to ${MAX_QTY}`)
+    if (q > 0) lines.push([id, q])
+  }
+  const cycle = cycleOf()
+  const now = Date.now()
+  await db.batch([
+    { sql: 'DELETE FROM restock_lines WHERE cycle = ? AND suburb = ? AND device = ?', args: [cycle.key, suburb, d] },
+    ...lines.map(([id, q]) => ({ sql: 'INSERT INTO restock_lines (cycle, suburb, device, shop, item, qty, ts) VALUES (?,?,?,?,?,?,?)', args: [cycle.key, suburb, d, shop, id, q, now] })),
+  ], 'write')
+  res.json({ ok: true, items: lines.length })
+}))
+
 api.use((req, res) => res.status(404).json({ error: 'Not found' }))
 app.use('/api', api)
 
@@ -506,6 +688,7 @@ app.use((err, req, res, next) => {
 })
 
 await migrate()
+if (process.env.DEMO_MODE === 'true') await startDemo(db)
 const port = Number(process.env.PORT) || 3000
 app.listen(port, () => {
   console.log(`Kasi Grid API on http://localhost:${port}`)

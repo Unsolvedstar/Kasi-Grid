@@ -55,6 +55,19 @@ export function forecast(events, now = Date.now()) {
   return out
 }
 
+// How long outages in a suburb usually last, from past reports that neighbours later marked "back on".
+// hours: one number per past outage. Needs 3 or more; the 80th percentile is the "bad day" figure to plan a battery against.
+export const MIN_DURATIONS = 3
+export const MIN_FOR_P80 = 5 // a tail figure from fewer outages would be a guess
+export function durationStats(hours) {
+  const h = hours.filter((x) => Number.isFinite(x) && x >= 1 / 12 && x <= 72).sort((a, b) => a - b)
+  if (h.length < MIN_DURATIONS) return null
+  const mid = h.length >> 1
+  const median = h.length % 2 ? h[mid] : (h[mid - 1] + h[mid]) / 2
+  const p80 = h[Math.min(h.length - 1, Math.ceil(0.8 * h.length) - 1)]
+  return { n: h.length, median: Math.round(median * 10) / 10, p80: h.length >= MIN_FOR_P80 ? Math.round(p80 * 10) / 10 : null }
+}
+
 // Start (epoch ms) of the next time the given weekday and band occur. If we are inside it right now, that is "now".
 export function nextWindow(dow, bandId, now) {
   const b = BANDS.find((x) => x.id === bandId)

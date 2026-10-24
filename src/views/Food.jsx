@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import Icon from '../components/Icon.jsx'
 import Map from '../components/Map.jsx'
 import { OUTLET_GROUPS, OUTLET_TYPES } from '../data.js'
 import { useT } from '../i18n.jsx'
@@ -94,7 +95,7 @@ export default function Food({ suburb, places, prices, actions }) {
         <div className="chips" role="tablist">
           {OUTLET_GROUPS.map((g) => (
             <button key={g.id} role="tab" aria-selected={group === g.id} className={group === g.id ? 'chip on' : 'chip'} onClick={() => { setGroup(g.id); setSelected(null) }}>
-              {g.icon} {t(g.label)}{counts[g.id] ? ` (${counts[g.id]})` : ''}
+              <Icon name={g.icon} /> {t(g.label)}{counts[g.id] ? ` (${counts[g.id]})` : ''}
             </button>
           ))}
         </div>

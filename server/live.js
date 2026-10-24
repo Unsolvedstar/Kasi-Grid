@@ -1,5 +1,5 @@
 import { db } from './db.js'
-import { SUBURBS } from '../shared/suburbs.js'
+import { SUBURBS, findSuburb } from '../shared/suburbs.js'
 
 // Public Overpass servers are often busy, so try each mirror in turn.
 const OVERPASS = ['https://overpass-api.de/api/interpreter', 'https://overpass.kumi.systems/api/interpreter']
@@ -96,7 +96,7 @@ async function queryOverpass(lat, lng, radius) {
 
 // Only known suburbs are queried, so the endpoint cannot be used as an open Overpass relay.
 export async function outletsFor(suburbId) {
-  const s = SUBURBS.find((x) => x.id === suburbId)
+  const s = findSuburb(suburbId)
   if (!s) return null
   const key = 'osm2:' + s.id
   const hit = await db.execute({ sql: 'SELECT value, ts FROM cache WHERE key = ?', args: [key] })

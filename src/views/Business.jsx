@@ -1,6 +1,7 @@
 import { BUSINESS_TYPES } from '../data.js'
+import Icon from '../components/Icon.jsx'
 import { useT } from '../i18n.jsx'
-import { businessAnalysis, outageHoursPerMonth, useLocalStorage, zar } from '../lib.js'
+import { businessAnalysis, liveOutageCost, outageHoursPerMonth, timeAgo, useLocalStorage, zar } from '../lib.js'
 
 const DEFAULTS = {
   type: 'spaza',
@@ -14,7 +15,7 @@ const DEFAULTS = {
 
 const BACKUPS = { none: 'None', gas: 'Gas / candles', inverter: 'Inverter + battery', solar: 'Solar system' }
 
-export default function Business({ suburb, stage: liveStage, isLive }) {
+export default function Business({ suburb, stage: liveStage, isLive, incidents = [] }) {
   const t = useT()
   const [b, setB] = useLocalStorage('kg2.business', DEFAULTS)
   const [planStage, setPlanStage] = useLocalStorage('kg2.planStage', 4)
@@ -24,15 +25,33 @@ export default function Business({ suburb, stage: liveStage, isLive }) {
   const a = businessAnalysis(b, stage, type)
   const tone = a.score >= 70 ? 'good' : a.score >= 40 ? 'warn' : 'bad'
 
+  const open = incidents.filter((i) => i.suburb === suburb.id && !i.resolved)
+
   return (
     <>
+      {open.map((i) => {
+        const c = liveOutageCost(b, type, i)
+        return (
+          <section key={i.type} className="card pulse bad" role="status">
+            <h2><Icon name={i.type === 'water' ? 'droplet' : 'zap'} /> {t(i.type === 'water' ? 'Water outage costing you now' : 'Power outage costing you now')}</h2>
+            <p className="big">{t('About {amount} lost so far', { amount: zar(c.loss) })}</p>
+            <p className="muted small">
+              {t('Verified {ago}, {n} neighbours.', { ago: timeAgo(i.since, t), n: i.devices })}{' '}
+              {t('Lost sales {sales}', { sales: zar(c.sales) })}{c.stock > 0 ? ` · ${t('Stock at risk {stock}', { stock: zar(c.stock) })}` : ''}
+            </p>
+            {c.stock > 0 && <p>{t('Keep fridge and freezer doors shut, and move the most valuable stock into a cold box with ice.')}</p>}
+          </section>
+        )
+      })}
       <section className="card">
         <h2>{t('Your business')}</h2>
         <p className="muted">
-          Plan for how bad it could get. {isLive ? `Eskom is currently at ${liveStage === 0 ? 'no loadshedding' : 'Stage ' + liveStage}, but shops in ${suburb.name} still need a plan for the next wave.` : ''}
+          {isLive && liveStage === 0
+            ? `Eskom has had no loadshedding since May 2025, but shops in ${suburb.name} still lose power to load reduction, cable theft and faults. Pick how many outage hours a month to plan for.`
+            : 'Plan for how bad it could get.'}
         </p>
         <div className="fields">
-          <label>Plan for loadshedding stage
+          <label>Plan for outages like loadshedding stage
             <select value={planStage} onChange={(e) => setPlanStage(Number(e.target.value))}>
               {[1, 2, 3, 4, 5, 6, 7, 8].map((n) => <option key={n} value={n}>Stage {n} (about {Math.round(outageHoursPerMonth(n))} hours a month)</option>)}
             </select>

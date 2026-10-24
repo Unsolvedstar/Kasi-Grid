@@ -1,5 +1,5 @@
 import { db } from './db.js'
-import { SUBURBS } from '../shared/suburbs.js'
+import { SUBURBS, findSuburb } from '../shared/suburbs.js'
 
 const HOUR = 3600 * 1000
 const UA = 'KasiGrid/0.2 (community resilience app)'
@@ -56,7 +56,7 @@ async function fetchForecast(lat, lng) {
 
 // Cached for an hour per suburb. Serves stale data if the provider is down.
 export async function weatherFor(suburbId) {
-  const s = SUBURBS.find((x) => x.id === suburbId)
+  const s = findSuburb(suburbId)
   if (!s) return null
   const key = 'wx:' + s.id
   const hit = await db.execute({ sql: 'SELECT value, ts FROM cache WHERE key = ?', args: [key] })

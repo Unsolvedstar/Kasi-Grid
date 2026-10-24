@@ -3,7 +3,7 @@
 
 const ADVICE = {
   rain: {
-    icon: '🌧️',
+    icon: 'rain',
     title: 'Heavy rain expected',
     tips: [
       'Never walk or drive through moving water. It takes only 15 cm to knock an adult over.',
@@ -13,7 +13,7 @@ const ADVICE = {
     action: { label: 'Report a flooded road or bridge', reportType: 'road', text: 'Flooding at ' },
   },
   heat: {
-    icon: '🥵',
+    icon: 'thermometer',
     title: 'Extreme heat expected',
     tips: [
       'Drink water regularly and store about 10 litres per person in case of a water cut.',
@@ -22,7 +22,7 @@ const ADVICE = {
     ],
   },
   cold: {
-    icon: '🥶',
+    icon: 'snowflake',
     title: 'Frost or very cold weather expected',
     tips: [
       'Never burn coal, wood or gas inside a closed room to keep warm. Carbon monoxide kills.',
@@ -31,7 +31,7 @@ const ADVICE = {
     ],
   },
   wind: {
-    icon: '💨',
+    icon: 'wind',
     title: 'Strong wind expected',
     tips: [
       'Tie down roofing sheets and anything loose that can fly.',

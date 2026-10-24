@@ -1,25 +1,25 @@
 export { SUBURBS } from '../shared/suburbs.js'
 
 export const REPORT_TYPES = {
-  power: { label: 'Power', icon: '⚡' },
-  water: { label: 'Water', icon: '💧' },
-  road: { label: 'Road / transport', icon: '🚌' },
-  other: { label: 'Other', icon: '📍' },
+  power: { label: 'Power', icon: 'zap' },
+  water: { label: 'Water', icon: 'droplet' },
+  road: { label: 'Road / transport', icon: 'bus' },
+  other: { label: 'Other', icon: 'pin' },
 }
 
 export const SHARE_CATEGORIES = {
-  power: { label: 'Charging / power', icon: '🔋' },
-  water: { label: 'Water', icon: '🚰' },
-  food: { label: 'Food / cold storage', icon: '🥫' },
-  transport: { label: 'Transport / lift', icon: '🚗' },
-  other: { label: 'Other', icon: '🤝' },
+  power: { label: 'Charging / power', icon: 'battery' },
+  water: { label: 'Water', icon: 'droplet' },
+  food: { label: 'Food / cold storage', icon: 'box' },
+  transport: { label: 'Transport / lift', icon: 'car' },
+  other: { label: 'Other', icon: 'users' },
 }
 
 export const OUTLET_GROUPS = [
-  { id: 'food', label: 'Food', icon: '🥬' },
-  { id: 'health', label: 'Health', icon: '🩺' },
-  { id: 'water', label: 'Water', icon: '🚰' },
-  { id: 'transport', label: 'Transport', icon: '🚌' },
+  { id: 'food', label: 'Food', icon: 'leaf' },
+  { id: 'health', label: 'Health', icon: 'health' },
+  { id: 'water', label: 'Water', icon: 'droplet' },
+  { id: 'transport', label: 'Transport', icon: 'bus' },
 ]
 
 export const OUTLET_TYPES = {
@@ -46,10 +46,10 @@ export const BUSINESS_TYPES = {
 }
 
 export const CHECKLIST_GROUPS = [
-  { id: 'water', label: 'Water', icon: '💧' },
-  { id: 'power', label: 'Power', icon: '🔋' },
-  { id: 'food', label: 'Food', icon: '🥫' },
-  { id: 'safety', label: 'Safety', icon: '🩺' },
+  { id: 'water', label: 'Water', icon: 'droplet' },
+  { id: 'power', label: 'Power', icon: 'battery' },
+  { id: 'food', label: 'Food', icon: 'box' },
+  { id: 'safety', label: 'Safety', icon: 'health' },
 ]
 
 export const CHECKLIST = [

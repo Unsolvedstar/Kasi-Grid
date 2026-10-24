@@ -19,6 +19,9 @@ for (let w = 1; w <= 10; w++) {
     if (ts > now) continue
     const r = await db.execute({ sql: 'INSERT INTO reports (suburb,type,text,ts,confirms,owner) VALUES (?,?,?,?,?,?)', args: [suburb, type, text, ts, 3, 'demo-history-owner'] })
     for (const dev of ['hist-a', 'hist-b', 'hist-c']) await db.execute({ sql: 'INSERT OR IGNORE INTO report_confirms (report_id, device) VALUES (?,?)', args: [Number(r.lastInsertRowid), dev + '-0000000000000000'] })
+    // Neighbours marked it back on after a plausible time (water 5 to 9 hours, power 2 to 5), so the typical-duration estimate has data.
+    const hours = type === 'water' ? 5 + (n % 5) : 2 + (n % 4)
+    await db.execute({ sql: 'INSERT OR IGNORE INTO report_restored (report_id, device, ts) VALUES (?,?,?)', args: [Number(r.lastInsertRowid), 'hist-a-0000000000000000', ts + hours * 3600e3] })
     n++
   }
 }

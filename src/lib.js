@@ -86,10 +86,42 @@ export function officialSlots(days, stage, from = new Date()) {
   return out.sort((a, b) => a.start - b.start)
 }
 
+// An iCalendar file of upcoming outage slots, each with a reminder 30 minutes before the power goes off.
+const icsTime = (d) => d.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '')
+const icsText = (x) => String(x).replace(/[\\,;]/g, (c) => '\\' + c).replace(/\r?\n/g, '\\n')
+export function slotsToIcs(slots, { area, official = false, stage = 0, now = new Date() } = {}) {
+  const lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Kasi Grid//Loadshedding//EN', 'CALSCALE:GREGORIAN']
+  for (const s of slots) {
+    lines.push(
+      'BEGIN:VEVENT',
+      `UID:${icsTime(s.start)}-${String(area).replace(/\W/g, '')}@kasigrid`,
+      `DTSTAMP:${icsTime(now)}`,
+      `DTSTART:${icsTime(s.start)}`,
+      `DTEND:${icsTime(s.end)}`,
+      `SUMMARY:${icsText(`Power off (stage ${stage})${official ? '' : ' - illustrative'}`)}`,
+      `DESCRIPTION:${icsText(`${area}. ${official ? 'Official EskomSePush slot.' : 'Illustrative pattern, not your official schedule.'} Charge phones and fill water containers.`)}`,
+      'BEGIN:VALARM', 'ACTION:DISPLAY', 'DESCRIPTION:Power goes off in 30 minutes', 'TRIGGER:-PT30M', 'END:VALARM',
+      'END:VEVENT',
+    )
+  }
+  lines.push('END:VCALENDAR')
+  return lines.join('\r\n') + '\r\n'
+}
+
 export const fmtSlot = (s, t) => {
   const today = new Date().toDateString() === s.start.toDateString()
   const h = `${pad(s.start.getHours())}:00 – ${pad(s.end.getHours() % 24)}:00`
   return say(t, today ? 'Today {h}' : 'Tomorrow {h}', { h })
+}
+
+// Eskom reports no loadshedding since 16 May 2025. Local outages (load reduction, cable theft, faults) still happen.
+export const LOADSHEDDING_FREE_SINCE = '2025-05-16'
+export const daysWithoutLoadshedding = (now = new Date()) => Math.max(0, Math.floor((now - new Date(LOADSHEDDING_FREE_SINCE + 'T00:00:00+02:00')) / 86400000))
+
+// When an outage is likely to end, from the typical length of past outages. `overdue` means it has already run past the typical length.
+export function expectedBack(since, medianHours, now = Date.now()) {
+  const at = since + medianHours * 3600000
+  return { at, overdue: now > at }
 }
 
 export const outageHoursPerMonth = (stage) => stage * 22.5
@@ -143,6 +175,21 @@ export function savingsTips(p, waterFn = waterCost) {
 }
 
 // Small-business resilience. Returns current monthly loss, score and ranked fixes.
+// What a verified outage that is happening now has cost this business so far. Uses the same rates as businessAnalysis.
+// Fridges hold cold for about 4 hours shut; stock risk then climbs to half the stock by 12 hours.
+export function liveOutageCost(b, type, incident, now = Date.now()) {
+  const hours = Math.max(0, (now - incident.since) / 3600000)
+  if (incident.type === 'water') {
+    const loss = b.dailyRevenue * type.waterDep * Math.min(1, hours / 24) * (b.tank ? 0.15 : 1)
+    return { hours, sales: loss, stock: 0, loss }
+  }
+  const cover = { none: 0, gas: 0.25, inverter: 0.7, solar: 0.9 }[b.backup] ?? 0
+  const overlap = Math.min(1, type.hoursOpen / 24 + 0.2)
+  const sales = hours * overlap * (b.dailyRevenue / type.hoursOpen) * type.powerDep * (1 - cover) * 0.6
+  const stock = type.cold && b.coldStock > 0 && !b.coldBackup ? b.coldStock * 0.5 * Math.min(1, Math.max(0, (hours - 4) / 8)) : 0
+  return { hours, sales, stock, loss: sales + stock }
+}
+
 export function businessAnalysis(b, stage, type) {
   const outHours = outageHoursPerMonth(stage)
   const hourlyRevenue = b.dailyRevenue / type.hoursOpen
