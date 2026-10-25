@@ -133,6 +133,7 @@ Generated from \`submission/content.mjs\` by \`node submission/build.mjs\`. Edit
 6. The demo video (90 seconds or less) using the script in the guide
 
 The Git repository is given as a link inside the overview and the deck: ${REPO}
+${LIVE_URL ? `Live app: ${LIVE_URL}` : ''}
 
 ## Before you submit
 - [ ] Deploy the app (see DEPLOY.md), then set \`LIVE_URL\` in \`submission/content.mjs\` and re-run \`node submission/build.mjs\` and the deck export

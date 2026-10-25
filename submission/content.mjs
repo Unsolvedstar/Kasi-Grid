@@ -6,7 +6,7 @@
 export const TEAM = 'Amethyst & Azure'
 export const APP = 'Kasi Grid'
 export const REPO = 'https://github.com/Unsolvedstar/Kasi-Grid'
-export const LIVE_URL = '' // add the Vercel address here once deployed; it then appears on the cover and in the deck
+export const LIVE_URL = 'https://kasi-grid.vercel.app'
 export const VIDEO_URL = '' // add the demo video link here once uploaded
 export const HACK = 'FNB App of the Year Hackathon 2026'
 export const TRACK = 'Climate resilience and essential services'

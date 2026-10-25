@@ -3,7 +3,7 @@
 const fs = require('fs')
 const pptxgen = require('pptxgenjs')
 const REPO = 'https://github.com/Unsolvedstar/Kasi-Grid'
-const LIVE_URL = '' // set once deployed
+const LIVE_URL = 'https://kasi-grid.vercel.app'
 const VIDEO_URL = '' // set once uploaded
 
 const pres = new pptxgen()
