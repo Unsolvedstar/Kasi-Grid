@@ -37,6 +37,8 @@ Loadshedding has officially ended. Eskom reports more than 500 days without it. 
 
 The pain points are specific. There is no trusted, community-level source of what is failing right now. There is no warning before it happens. Rumour spreads faster than any official notice. And the tools that exist assume a signal and a schedule, but signal drops exactly when the power does. The people living in a neighbourhood already know what is failing in it, but nothing turns that knowledge into something others can act on.
 
+There is a quieter problem underneath. Digital life has made it easier to scroll past the person next door. In a blackout people learn what is happening on their own street from rumours in a group chat, not from each other, and a household sitting in the dark often has no idea that a neighbour two doors down has a generator, a gas stove or a spare phone charger. The tools meant to connect us have left many communities less connected, exactly when a community is needed most.
+
 _Sources: Eskom statements and SAnews (October 2026); Daily Maverick (January 2026); allAfrica (August 2026)._
 
 ## 3. Solution and features
@@ -56,16 +58,18 @@ Kasi Grid is a free web app that works anonymously (an account is optional), ins
 
 ## 4. What makes this solution stand out
 
-Most outage apps are built for loadshedding: they assume Eskom publishes a stage and a schedule, and they display it. That no longer fits what townships live with. Kasi Grid is built for the failures that have no schedule: load reduction, cable theft, substation faults and water cuts. It gets its information from the one source that is always there, the neighbours sitting in the dark.
+Kasi Grid brings a community closer together instead of pulling people apart. Most apps ask you to look at a screen alone. Kasi Grid only works when neighbours take part: an outage is real because three neighbours say so, help reaches a dark home because a neighbour offers it, and a spaza saves money because other spazas order with it. The technology is there to get people talking to the people next door, which is the old township spirit of ubuntu, "I am because we are", in a form that fits a phone.
 
-- **Trustworthy.** One report is not treated as truth. An outage is shown as verified only when three different devices agree, and reports are anonymous.
-- **It tells you what to do, not just what is wrong.** It learns your street's pattern, then says what to do now: charge phones, cook while there is power, fill buckets.
-- **It protects the people most at risk.** The medical battery countdown, staged alerts and one-tap ambulance call exist because losing power can cost a life. Most outage tools stop at the alert.
-- **It supports the local economy.** Spazas see what an outage costs them and order stock together for lower prices.
-- **It is built for the conditions it serves.** It works offline, is anonymous, multilingual, light on data, and usable by people who cannot see or hear a screen alert.
+- **Neighbours make it true.** Three different neighbours must agree before an outage is verified, so the alert is a shared act, not a post you scroll past. Neighbours then vote "back on for me" to close it.
+- **Help travels door to door.** A neighbour with a generator, a gas stove or a charger offers it on the community board and shows on the street map as a gold light, with a thread running to the nearest dark home. People who need a lift, water, charging or cold storage for medicine can ask the street.
+- **Shops grow together.** Spazas order stock as one group for lower prices, and see what an outage costs them, so a local business is held up by its neighbours.
+- **No one is left out.** It works anonymously, offline and on a basic phone, in four languages, for people who are deaf, hard of hearing, blind or have low vision, so the person who most needs the community is not the person the app forgets.
+- **Trust, not rumour.** Because the information comes from real neighbours and is checked by more than one, it replaces the rumour mill with something people can rely on.
+- **It protects the most vulnerable.** A live battery countdown and a one-tap ambulance call exist because the people closest to someone on a medical device are their neighbours and family.
 
 ## 5. Unfair advantage
 
+- **A network of neighbours, not a feed.** The product only works when people in a community take part, so each person who joins makes it better for the next, and the trust it builds between neighbours is something a copy of our screens cannot copy.
 - **No dependence on anyone else's data.** Loadshedding apps stop working when there is no official schedule. Our source is the neighbours, so the service keeps working where official systems are silent.
 - **It still works when the power and signal go.** The app works offline and queues posts until signal returns.
 - **The data improves with every report and stays local.** Each verified outage adds to a record of when and how long outages happen in that community. A newcomer can copy our screens but not that history or the trust around it.
@@ -209,7 +213,7 @@ Overall risk for a pilot: low to medium. The app holds no passwords, payment det
 ## Lean Business Canvas
 - **Problem:** Unscheduled power and water outages in townships with no published, trusted information (load reduction, cable theft, substation faults; 22 major Johannesburg water outages in two weeks of January 2026).; Households on medical devices cannot tell if a backup will last.; Small businesses lose stock and sales and cannot see the cost.
 - **Customer segments:** Township households (free); Medically dependent households and their carers; Spaza shops and small traders (Pro); Suppliers, carers and clinics (partners); Municipalities, banks, insurers and NGOs (sponsors)
-- **Unique value proposition:** The only app that turns neighbour reports into verified community outage alerts anywhere in South Africa, learns how long they last, and ties them to medical power needs and what an outage costs a business. Free, anonymous, offline.
+- **Unique value proposition:** The outage app that brings a community closer together: neighbours verify outages, offer help door to door and buy together, so technology connects people instead of isolating them. Free, anonymous, offline, for everyone, anywhere in South Africa.
 - **Solution:** Live satellite street with verified outages; Forecast and typical duration; Medical battery countdown, alerts and ambulance call; Care and equipment booking; Outage-cost planner and restock orders; Community board; accessibility; four languages
 - **Channels:** WhatsApp sharing from the app; Spaza shop counters (QR code); Community groups and ward committees; Clinics, carers and equipment suppliers; Installable web app, no app store
 - **Revenue streams:** Spaza Pro about R49 a month; Commission on restock orders (4%) and bookings (10%); Partner listings about R299 a month; Municipal dashboard or sponsorship about R3,000 a month

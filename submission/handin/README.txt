@@ -3,7 +3,7 @@ FNB App of the Year Hackathon 2026
 
 Files, in the order to submit (each under 25 MB; no code files):
   01-Project-Overview.pdf       the story, problem, solution, what stands out, advantage, segments, metrics, channels, costs, revenue
-  02-Pitch-Deck.pdf             the pitch deck (17 slides)
+  02-Pitch-Deck.pdf             the pitch deck (18 slides)
   03-SSDLC-Security.pdf         the secure system development cycle
   04-Lean-Business-Canvas.pdf   one page
   05-Demo-Guide.pdf             how to try it, what is real and what is sample, the 90-second script

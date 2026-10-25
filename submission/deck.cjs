@@ -52,7 +52,7 @@ s.addShape(pres.ShapeType.rect, { x: 5, y: 0, w: 5, h: 0.12, fill: { color: AZ }
 if (fs.existsSync('logo-mark.png')) s.addImage({ path: 'logo-mark.png', x: 0.6, y: 0.5, w: 1.7, h: 0.92 })
 T(s, 'Kasi Grid', { x: 0.6, y: 1.5, w: 5.4, h: 0.9, fontFace: H, fontSize: 52, bold: true, color: 'FFFFFF' })
 T(s, 'Know before it goes dark.', { x: 0.6, y: 2.4, w: 5.6, h: 0.5, fontFace: H, fontSize: 24, italic: true, color: AZL })
-T(s, 'Neighbours verify power and water outages anywhere in South Africa, the app learns when and how long they last, and families that depend on power for health get help in time.', { x: 0.6, y: 3.0, w: 5.3, h: 1.2, fontSize: 15, color: 'E9E2FB', valign: 'top' })
+T(s, 'An app that brings neighbours closer: they verify power and water outages together, offer help door to door, and families that depend on power for health get help in time.', { x: 0.6, y: 3.0, w: 5.3, h: 1.2, fontSize: 15, color: 'E9E2FB', valign: 'top' })
 T(s, [
   { text: 'FNB App of the Year Hackathon 2026  |  Climate resilience and essential services', options: { breakLine: true } },
   { text: 'Team Amethyst & Azure: Tshedza Tshikovhi and Mulanga Munaka', options: { breakLine: true } },
@@ -70,6 +70,18 @@ stat(s, 3.6, 1.15, 2.9, 'Still dark', 'Townships lose power to load reduction, c
 stat(s, 6.7, 1.15, 2.9, '22', 'major water outages in two weeks in Johannesburg, January 2026.', RED)
 card(s, 0.5, 3.2, 9.0, 1.65, 'What a family sees', 'The power or water goes off on one street. Nobody says why or for how long, so a WhatsApp rumour decides whether the fridge stays shut. A spaza loses a day of stock. And a household on an oxygen concentrator cannot tell how long its battery will last against an outage.')
 note(s, 'Sources: Eskom statements and SAnews (Oct 2026); Daily Maverick (Jan 2026); allAfrica (Aug 2026).')
+
+// 2b Our difference: it brings neighbours closer
+s = base('Our difference: it brings neighbours closer')
+T(s, 'Most apps ask you to look at a screen alone. Kasi Grid only works when neighbours take part. Technology that sends you to the person next door: ubuntu, "I am because we are".', { x: 0.5, y: 1.0, w: 6.5, h: 0.85, fontSize: 15, italic: true, color: AM, valign: 'top' })
+;[
+  ['Neighbours make it true', '3 different neighbours must agree before an outage is verified. Then they vote "back on for me" to close it.'],
+  ['Help travels door to door', 'A neighbour with a generator, gas stove or charger shows as a gold light on the street, with a thread to the nearest dark home.'],
+  ['Shops grow together', 'Spazas order stock as one group for lower prices and see what an outage costs them.'],
+  ['No one is left out', 'Anonymous, offline, four languages, and usable if you are deaf or blind, so the person who needs the community most is not forgotten.'],
+].forEach(([h, b], i) => card(s, 0.5 + (i % 2) * 3.3, 1.95 + Math.floor(i / 2) * 1.5, 3.15, 1.4, h, b, i % 3 ? 'EAF3FE' : LT, i % 3 ? AZ : AM))
+pic(s, 'share', 7.3, 1.05, { h: 3.9 })
+note(s, 'In a blackout people learn what is happening from rumours in a group chat. We want them to learn it from each other.')
 
 // 3 Solution at a glance
 s = base('Kasi Grid in one slide')
