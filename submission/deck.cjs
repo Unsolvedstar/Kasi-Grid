@@ -30,7 +30,7 @@ function base(title, dark) {
   s.addShape(pres.ShapeType.rect, { x: 5, y: 0, w: 5, h: 0.09, fill: { color: AZ }, line: { color: AZ } })
   T(s, title, { x: 0.5, y: 0.3, w: 9, h: 0.7, fontFace: H, fontSize: 28, bold: true, color: dark ? 'FFFFFF' : DK })
   T(s, 'Kasi Grid  |  Amethyst & Azure', { x: 0.5, y: 5.3, w: 5, h: 0.2, fontSize: 9, color: dark ? 'B9AEE0' : MUT })
-  T(s, REPO, { x: 4.5, y: 5.3, w: 5, h: 0.2, fontSize: 9, align: 'right', color: dark ? 'B9AEE0' : MUT })
+  T(s, [{ text: REPO, options: { hyperlink: { url: REPO, tooltip: 'Open the Git repository' }, color: dark ? 'B9AEE0' : MUT } }], { x: 4.5, y: 5.3, w: 5, h: 0.2, fontSize: 9, align: 'right' })
   return s
 }
 const bullets = (s, items, o) => T(s, items.map((t, i) => ({ text: t, options: { bullet: true, breakLine: i < items.length - 1, paraSpaceAfter: 8 } })), { fontSize: 15, color: INK, valign: 'top', ...o })
@@ -53,7 +53,14 @@ if (fs.existsSync('logo-mark.png')) s.addImage({ path: 'logo-mark.png', x: 0.6, 
 T(s, 'Kasi Grid', { x: 0.6, y: 1.5, w: 5.4, h: 0.9, fontFace: H, fontSize: 52, bold: true, color: 'FFFFFF' })
 T(s, 'Know before it goes dark.', { x: 0.6, y: 2.4, w: 5.6, h: 0.5, fontFace: H, fontSize: 24, italic: true, color: AZL })
 T(s, 'Neighbours verify power and water outages anywhere in South Africa, the app learns when and how long they last, and families that depend on power for health get help in time.', { x: 0.6, y: 3.0, w: 5.3, h: 1.2, fontSize: 15, color: 'E9E2FB', valign: 'top' })
-T(s, `FNB App of the Year Hackathon 2026  |  Climate resilience and essential services\nTeam Amethyst & Azure: Tshedza Tshikovhi and Mulanga Munaka\nSource code: ${REPO}`, { x: 0.6, y: 4.4, w: 5.6, h: 0.8, fontSize: 11.5, color: 'C9BEEB', valign: 'top' })
+T(s, [
+  { text: 'FNB App of the Year Hackathon 2026  |  Climate resilience and essential services', options: { breakLine: true } },
+  { text: 'Team Amethyst & Azure: Tshedza Tshikovhi and Mulanga Munaka', options: { breakLine: true } },
+  { text: 'Source code: ', options: {} },
+  { text: REPO, options: { hyperlink: { url: REPO, tooltip: 'Open the Git repository' }, color: AZL, breakLine: !!(LIVE_URL || VIDEO_URL) } },
+  ...(LIVE_URL ? [{ text: 'Live app: ', options: {} }, { text: LIVE_URL, options: { hyperlink: { url: LIVE_URL, tooltip: 'Open the live app' }, color: AZL, breakLine: !!VIDEO_URL } }] : []),
+  ...(VIDEO_URL ? [{ text: 'Demo video: ', options: {} }, { text: 'Watch the 90-second demo', options: { hyperlink: { url: VIDEO_URL, tooltip: 'Watch the demo video' }, color: AZL } }] : []),
+], { x: 0.6, y: 4.2, w: 5.6, h: 1.0, fontSize: 11.5, color: 'C9BEEB', valign: 'top' })
 pic(s, 'street', 6.7, 0.45, { h: 4.7 })
 
 // 2 Problem
@@ -177,6 +184,12 @@ card(s, 6.6, 1.2, 2.9, 3.5, 'Months 5-6: scale it', 'More communities from the s
 s = base('Team Amethyst & Azure, and where to find the code', true)
 card(s, 0.5, 1.2, 4.4, 2.0, 'Team', 'Tshedza Tshikovhi (22): software developer, leads a small team at Shudu Connections (Innovation Hub). Built CashCram, Top-13 in the NWU 2026 pitch competition.\nMulanga Munaka (22): biomedical engineering student at Wits, responsible for the medical side: the power plan, battery alerts and emergency features.', 'EAE7F7', DK)
 card(s, 5.1, 1.2, 4.4, 2.0, 'Why us', 'A developer who ships and a biomedical engineer who knows how people depend on power for health. Built, tested and checked on a phone.', 'EAE7F7', DK)
-card(s, 0.5, 3.4, 9.0, 1.5, 'Source code and demo', `Git repository: ${REPO}${LIVE_URL ? `\nLive app: ${LIVE_URL}` : ''}${VIDEO_URL ? `\nDemo video (90 s): ${VIDEO_URL}` : ''}\nTry: the street slider, Today, Deliver (300 W, 1000 Wh, "Switched to battery"), and the accessibility button.`, 'EAE7F7', DK)
+const lk = (label, url, text, last) => [{ text: label, options: {} }, { text: text || url, options: { hyperlink: { url, tooltip: url }, color: '1B6FB5', breakLine: !last } }]
+card(s, 0.5, 3.4, 9.0, 1.5, 'Source code and demo', [
+  ...lk('Git repository: ', REPO, REPO, false),
+  ...(LIVE_URL ? lk('Live app: ', LIVE_URL, LIVE_URL, false) : []),
+  ...(VIDEO_URL ? lk('Demo video (90 s): ', VIDEO_URL, 'Watch on Google Drive', false) : []),
+  { text: 'Try: the street slider, Today, Deliver (300 W, 1000 Wh, "Switched to battery"), and the accessibility button.', options: {} },
+], 'EAE7F7', DK)
 
 pres.writeFile({ fileName: process.env.DECK_OUT || 'Kasi-Grid-deck.pptx' }).then(() => console.log('ok'))

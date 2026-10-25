@@ -12,7 +12,9 @@ import { APP, HACK, LIVE_URL, REPO, TAGLINE, TEAM, TRACK, VIDEO_URL, canvas, dem
 const OUT = 'submission/handin'
 fs.mkdirSync(OUT, { recursive: true })
 const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-const inline = (s) => esc(s).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/`(.+?)`/g, '<code>$1</code>')
+// every bare web address in the text becomes a link, so nothing is left as plain text in the PDFs
+const linkify = (h) => h.replace(/(^|[\s(>])(https?:\/\/[^\s<)]+[^\s<).,;])/g, '$1<a href="$2">$2</a>')
+const inline = (s) => linkify(esc(s).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/`(.+?)`/g, '<code>$1</code>'))
 const img = (n) => `data:image/png;base64,${fs.readFileSync(`submission/shots/${n}.png`).toString('base64')}`
 const mark = fs.readFileSync('public/brand/logo-mark.svg', 'utf8')
 
@@ -47,10 +49,10 @@ tr:last-child td:first-child { font-weight: 700; }
 .shots { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 10px 0; break-inside: avoid; }
 .shots figure { margin: 0; text-align: center; font-size: 8pt; color: #5a5475; } .shots img { width: 100%; border-radius: 10px; border: 1px solid #e3dcf5; display: block; }
 section { break-inside: auto; }
-.canvas { display: grid; grid-template-columns: repeat(5, 1fr); grid-template-rows: 1fr 1fr auto; gap: 8px; height: 168mm; }
+.canvas { display: grid; grid-template-columns: repeat(5, 1fr); grid-template-rows: 1fr 1fr auto; gap: 8px; height: 148mm; }
 .canvas .box { border: 1.5px solid #cfc4ee; border-radius: 10px; padding: 8px 10px; background: #fff; overflow: hidden; }
 .canvas .box h3 { margin: 0 0 5px; font-size: 10.5pt; color: #4b2fa6; text-transform: uppercase; letter-spacing: .04em; }
-.canvas .box ul { margin: 0; padding-left: 15px; font-size: 10pt; line-height: 1.4; } .canvas .box li { margin: 2px 0; } .canvas .box p { font-size: 10pt; margin: 0; line-height: 1.45; }
+.canvas .box ul { margin: 0; padding-left: 15px; font-size: 9.2pt; line-height: 1.35; } .canvas .box li { margin: 2px 0; } .canvas .box p { font-size: 9.2pt; margin: 0; line-height: 1.45; }
 .canvas .wide { grid-column: span 5; background: #faf8ff; font-size: 8.6pt; }
 .footer { font-size: 8pt; color: #7a7497; }
 `
@@ -81,7 +83,7 @@ const cb = (t, x, cls = '') => `<div class="box ${cls}"><h3>${t}</h3>${Array.isA
 const canvasHtml = shell('04 Lean Business Canvas', `<h1 style="font-size:20pt">Lean Business Canvas &middot; ${esc(APP)}</h1><p class="note" style="margin:2px 0 8px">${esc(TEAM)} &middot; ${esc(HACK)}</p>
   <div class="canvas">${cb('Problem', canvas.problem)}${cb('Solution', canvas.solution)}${cb('Unique value proposition', canvas.uvp)}${cb('Unfair advantage', canvas.unfair)}${cb('Customer segments', canvas.segments)}
   ${cb('Key metrics', canvas.metrics)}${cb('Channels', canvas.channels)}${cb('Cost structure', canvas.costs)}${cb('Revenue streams', canvas.revenue)}${cb('Assumptions to validate', canvas.assumptions)}</div>
-  <p class="footer">Source code: ${esc(REPO)}</p>`, true)
+  <p class="footer">Source code: <a href="${esc(REPO)}">${esc(REPO)}</a>${LIVE_URL ? ` &middot; Live app: <a href="${esc(LIVE_URL)}">${esc(LIVE_URL)}</a>` : ''}${VIDEO_URL ? ` &middot; Demo video: <a href="${esc(VIDEO_URL)}">Watch</a>` : ''}</p>`, true)
 
 const demoHtml = shell('05 Demo guide', cover('Demo guide', 'How to see it working in two minutes') + `<section><h2>1. Try it</h2><ul>${demo.tryit.map((x) => `<li>${inline(x)}</li>`).join('')}</ul><p>${inline(demo.intro)}</p></section>
   <section><h2>2. What is real, and what is sample</h2><p>${inline(demo.sample)}</p></section>
