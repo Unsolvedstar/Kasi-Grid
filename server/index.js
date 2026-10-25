@@ -14,6 +14,7 @@ import { autoLink, callsToday, cityStage, espEnabled, listMappings, nearbyForSub
 import { durationStats, forecast } from '../shared/forecast.js'
 import { startDemo } from './demo.js'
 import { buildingsFor } from './buildings.js'
+import { mountAuth, userOf } from './auth.js'
 import { EQUIPMENT, MAX_HOURS, MIN_HOURS, PICKUPS, SERVICES, isDelivery, nearestCarers, personName, poolFor, quote } from '../shared/care.js'
 import { CATALOGUE, ITEM_IDS, MAX_QTY, TIERS, cycleOf } from '../shared/restock.js'
 import { foodReference, namcStatus, refreshNamc, startNamcSchedule } from './namc.js'
@@ -77,6 +78,8 @@ api.use(rateLimit({ windowMs: 60 * 1000, limit: 300, standardHeaders: true, lega
 const writeLimit = rateLimit({ windowMs: 60 * 1000, limit: Number(process.env.WRITE_LIMIT) || 30, standardHeaders: true, legacyHeaders: false, message: { error: 'Too many requests, slow down' } })
 api.use((req, res, next) => (req.method === 'GET' ? next() : writeLimit(req, res, next)))
 const wrap = (fn) => (req, res, next) => Promise.resolve(fn(req, res)).catch(next)
+
+mountAuth(api, { db, wrap, bad, HttpError })
 
 api.get('/health', wrap(async (req, res) => {
   await db.execute('SELECT 1')
@@ -588,6 +591,7 @@ api.get('/care/catalogue', wrap(async (req, res) => {
 
 api.post('/care/bookings', wrap(async (req, res) => {
   const d = needDevice(req)
+  const me = await userOf(db, req)
   const b = req.body || {}
   const suburb = oneOf(b.suburb, SUBURB_IDS, 'suburb')
   const service = oneOf(b.service, Object.keys(SERVICES), 'service')
@@ -610,22 +614,24 @@ api.post('/care/bookings', wrap(async (req, res) => {
   const status = q.needsPrescription ? 'awaiting_prescription' : service === 'equipment' ? 'accepted' : offered.length ? 'offered' : 'unfilled'
   const now = Date.now()
   const ins = await db.execute({
-    sql: `INSERT INTO care_bookings (device, suburb, service, hours, start_ts, patient, needs, landmark, equipment, total, quoted, status, offered, created, updated, pickup, urgent, fee)
-          VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?14,?14,?15,?16,?17)`,
-    args: [d, suburb, service, q.hours, start, patient, needs, landmark, JSON.stringify(q.equipment), q.total, JSON.stringify(q.quotedItems), status, JSON.stringify(offered), now, isDelivery(service) ? String(b.pickup) : '', urgent ? 1 : 0, q.fee],
+    sql: `INSERT INTO care_bookings (device, suburb, service, hours, start_ts, patient, needs, landmark, equipment, total, quoted, status, offered, created, updated, pickup, urgent, fee, user)
+          VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?14,?14,?15,?16,?17,?18)`,
+    args: [d, suburb, service, q.hours, start, patient, needs, landmark, JSON.stringify(q.equipment), q.total, JSON.stringify(q.quotedItems), status, JSON.stringify(offered), now, isDelivery(service) ? String(b.pickup) : '', urgent ? 1 : 0, q.fee, me ? Number(me.id) : null],
   })
   res.status(201).json({ id: Number(ins.lastInsertRowid), status, total: q.total, quotedItems: q.quotedItems })
 }))
 
 api.get('/care/bookings', wrap(async (req, res) => {
   const d = needDevice(req)
-  const rows = await db.execute({ sql: 'SELECT * FROM care_bookings WHERE device = ? ORDER BY created DESC LIMIT 20', args: [d] })
+  const me = await userOf(db, req)
+  const rows = await db.execute({ sql: 'SELECT * FROM care_bookings WHERE device = ?1 OR (?2 IS NOT NULL AND user = ?2) ORDER BY created DESC LIMIT 20', args: [d, me ? Number(me.id) : null] })
   res.json({ bookings: rows.rows.map(shapeBooking) })
 }))
 
 api.post('/care/bookings/:id/cancel', wrap(async (req, res) => {
   const d = needDevice(req)
-  const r = await db.execute({ sql: `UPDATE care_bookings SET status = 'cancelled', updated = ? WHERE id = ? AND device = ? AND status IN ('awaiting_prescription','offered','accepted','unfilled')`, args: [Date.now(), Number(req.params.id), d] })
+  const me = await userOf(db, req)
+  const r = await db.execute({ sql: `UPDATE care_bookings SET status = 'cancelled', updated = ?1 WHERE id = ?2 AND (device = ?3 OR (?4 IS NOT NULL AND user = ?4)) AND status IN ('awaiting_prescription','offered','accepted','unfilled')`, args: [Date.now(), Number(req.params.id), d, me ? Number(me.id) : null] })
   if (!r.rowsAffected) throw new HttpError(404, 'Booking not found or already finished')
   res.json({ ok: true })
 }))

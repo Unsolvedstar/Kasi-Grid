@@ -10,6 +10,7 @@ import { DAYS } from '../../shared/forecast.js'
 import { CHEMISTRY, EMERGENCY, EQUIPMENT, MAX_HOURS, MIN_HOURS, SERVICES, URGENT_FEE, isDelivery, pickupsFor, quote } from '../../shared/care.js'
 import { batteryIcs, useBattery } from '../battery.js'
 import { loadContact, saveContact } from '../emergency.js'
+import { openAuth } from '../auth.js'
 
 const STATUS = {
   awaiting_prescription: { label: 'Waiting for prescription approval', tone: 'sample' },
@@ -28,7 +29,7 @@ const localInput = (ms) => {
 }
 const fmtStart = (ms) => new Date(ms).toLocaleString('en-ZA', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
 
-export default function Care({ suburb, incidents = [], care, setCare }) {
+export default function Care({ suburb, incidents = [], care, setCare, auth }) {
   const t = useT()
   const [bookings, setBookings] = useState([])
   const [loadErr, setLoadErr] = useState('')
@@ -43,7 +44,7 @@ export default function Care({ suburb, incidents = [], care, setCare }) {
     <>
       <OutageBanner suburb={suburb} incidents={incidents} onOxygen={() => setCare({ service: 'oxygen', equipment: ['swap'], urgent: true })} />
       <PowerPlan suburb={suburb} incidents={incidents} onGetBackup={() => setCare({ service: 'equipment', equipment: ['bat'] })} />
-      <Book suburb={suburb} preset={care} clearPreset={() => setCare(null)} onBooked={load} />
+      <Book auth={auth} suburb={suburb} preset={care} clearPreset={() => setCare(null)} onBooked={load} />
       <section className="card">
         <h2>{t('Your bookings')}</h2>
         {loadErr && <p className="notice" role="alert">{loadErr}</p>}
@@ -235,7 +236,7 @@ function EmergencyContact() {
   )
 }
 
-function Book({ suburb, preset, clearPreset, onBooked }) {
+function Book({ auth, suburb, preset, clearPreset, onBooked }) {
   const t = useT()
   const blank = { service: 'meds', hours: 4, pickup: '', urgent: false, start: localInput(Date.now() + 24 * 3600 * 1000), patient: '', needs: '', landmark: '', equipment: [] }
   const [f, setF] = useState(blank)
@@ -378,6 +379,7 @@ function Book({ suburb, preset, clearPreset, onBooked }) {
     <section className="card">
       <h2>{t('Book a delivery, care or equipment in {name}', { name: suburb.name })}</h2>
       {doneMsg}
+      {auth && !auth.signedIn && <p className="muted small">{t('Tip: sign in so your bookings follow you to any phone.')} <button type="button" className="link" onClick={() => openAuth('login')}>{t('Sign in')}</button></p>}
       <Wizard key={wk} steps={steps} finishLabel={t('Book now')} busy={busy} error={err} onFinish={submit} />
     </section>
   )

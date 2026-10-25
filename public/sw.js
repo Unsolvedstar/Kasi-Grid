@@ -42,6 +42,7 @@ self.addEventListener('fetch', (e) => {
 
   if (url.pathname.startsWith('/api/admin')) return // moderation data is never cached
   if (url.pathname.startsWith('/api/care')) return // bookings are private to the device and are never cached
+  if (url.pathname.startsWith('/api/auth')) return // who is signed in is never cached
   if (url.pathname.startsWith('/api/')) {
     // The device id header is per-user, but responses only differ in "mine" flags, so key on the URL.
     e.respondWith(networkFirst(req, API, null, new Request(url.href)).catch(() => new Response(JSON.stringify({ error: 'offline' }), { status: 503, headers: { 'Content-Type': 'application/json' } })))

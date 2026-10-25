@@ -743,3 +743,13 @@ html.calm .wiz-body { animation: none; }
 .tile strong { font-size: clamp(.9rem, 4.4vw, 1.05rem); }
 .me-dot { filter: drop-shadow(0 0 6px rgba(42, 139, 242, .9)); animation: me-pulse 2s ease-in-out infinite; }
 @keyframes me-pulse { 50% { filter: drop-shadow(0 0 14px rgba(42, 139, 242, .6)); } }
+
+/* ===== Optional account ===== */
+.auth-scrim { position: fixed; inset: 0; z-index: 7000; display: grid; place-items: center; padding: 16px; background: rgba(20, 12, 50, .55); backdrop-filter: blur(6px); }
+.auth { position: relative; width: min(100%, 420px); max-height: calc(100dvh - 32px); overflow: auto; display: grid; gap: 10px; padding: 20px; border-radius: 22px; background: var(--card); color: var(--ink); box-shadow: 0 24px 70px -20px rgba(20, 10, 70, .7); }
+.auth h2 { margin: 0 34px 0 0; font-size: 1.3rem; }
+.auth-x { position: absolute; top: 12px; right: 12px; background: none; border: 0; color: var(--muted); }
+.auth label { display: grid; gap: 4px; font-size: .85rem; }
+.auth .pw { display: flex; gap: 6px; } .auth .pw input { flex: 1; min-width: 0; }
+.account { display: grid; gap: 8px; padding-bottom: 8px; border-bottom: 1px dashed var(--line); }
+.auth .field { display: grid; gap: 4px; font-size: .85rem; }

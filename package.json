@@ -15,7 +15,7 @@
     "express": "^5.2.1",
     "express-rate-limit": "^8.7.0",
     "leaflet": "^1.9.4",
-    "pdfjs-dist": "^5.6.205",
+    "pdfjs-dist": "5.5.207",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-leaflet": "^4.2.1"
@@ -24,6 +24,7 @@
     "@vitejs/plugin-react": "^4.3.1",
     "concurrently": "^9.2.4",
     "playwright": "^1.63.0",
+    "pptxgenjs": "^4.0.1",
     "vite": "^5.4.0"
   },
   "engines": {

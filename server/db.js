@@ -40,6 +40,9 @@ export async function migrate() {
       `CREATE TABLE IF NOT EXISTS restock_lines (
         cycle TEXT NOT NULL, suburb TEXT NOT NULL, device TEXT NOT NULL, shop TEXT NOT NULL, item TEXT NOT NULL, qty INTEGER NOT NULL,
         ts INTEGER NOT NULL, PRIMARY KEY (cycle, suburb, device, item))`,
+      `CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, handle TEXT NOT NULL UNIQUE, kind TEXT NOT NULL, name TEXT NOT NULL DEFAULT '', pw TEXT NOT NULL, prefs TEXT NOT NULL DEFAULT '{}', created INTEGER NOT NULL)`,
+      `CREATE TABLE IF NOT EXISTS sessions (id TEXT PRIMARY KEY, user INTEGER NOT NULL, created INTEGER NOT NULL, expires INTEGER NOT NULL)`,
+      `CREATE INDEX IF NOT EXISTS sessions_user ON sessions (user)`,
       `CREATE TABLE IF NOT EXISTS cache (key TEXT PRIMARY KEY, value TEXT NOT NULL, ts INTEGER NOT NULL)`,
       `CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT)`,
       `CREATE TABLE IF NOT EXISTS suburb_areas (suburb TEXT PRIMARY KEY, area_id TEXT NOT NULL, area_name TEXT, updated INTEGER)`,
@@ -48,7 +51,7 @@ export async function migrate() {
     'write',
   )
   // Older databases predate delivery bookings: add the columns if they are missing.
-  for (const col of ["pickup TEXT NOT NULL DEFAULT ''", 'urgent INTEGER NOT NULL DEFAULT 0', 'fee INTEGER NOT NULL DEFAULT 0']) {
+  for (const col of ["pickup TEXT NOT NULL DEFAULT ''", 'urgent INTEGER NOT NULL DEFAULT 0', 'fee INTEGER NOT NULL DEFAULT 0', 'user INTEGER']) {
     try {
       await db.execute(`ALTER TABLE care_bookings ADD COLUMN ${col}`)
     } catch {

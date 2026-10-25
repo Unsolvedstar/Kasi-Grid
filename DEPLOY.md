@@ -27,6 +27,9 @@ Without `DATABASE_URL` the app still starts on a temporary file that is wiped wh
 
 Limits on Vercel: nothing runs in the background, so the monthly food-price check and the automatic EskomSePush area linking do not run on their own (use the buttons on `/admin`, or a Vercel Cron job calling them), and the rate limits are per function instance, not global.
 
+## Accounts
+Accounts are optional. They add the `users` and `sessions` tables (created automatically). A session is an HttpOnly cookie valid for 90 days, so the host must serve the app over HTTPS (Vercel and Render do). `AUTH_LIMIT` (default 10 attempts a minute per address) tunes the sign-in rate limit. Passwords are stored only as scrypt hashes.
+
 ## Any Docker host
 `docker build -t kasi-grid . && docker run -p 3000:3000 -v kasi-data:/app/data -e ADMIN_TOKEN=choose-a-long-secret kasi-grid`
 

@@ -17,6 +17,8 @@ import Vitals from './components/Vitals.jsx'
 import BatteryWatch from './components/BatteryWatch.jsx'
 import A11yLayer from './components/A11yLayer.jsx'
 import A11ySettings from './components/A11ySettings.jsx'
+import AuthDialog, { AccountPanel } from './components/AuthDialog.jsx'
+import { useAuth } from './auth.js'
 import { alertUser, announce, isCustom, useA11y } from './a11y.js'
 import { mood as moodOf, riskTimeline } from '../shared/sense.js'
 
@@ -71,6 +73,7 @@ export default function App() {
   }, [tab])
   // The street is the home screen: it peeks. Every other section rises to half height.
   const a11y = useA11y()
+  const auth = useAuth() // optional account: signs in again by itself every time the app opens
   // Someone using a screen reader gets the whole page, not a peek, so nothing is hidden behind a clipped sheet.
   useEffect(() => { setSnap(a11y.profile === 'blind' ? 'full' : tab === 'sense' ? 'peek' : 'half') }, [tab, a11y.profile])
   const [suburbId, setSuburbId] = useLocalStorage('kg2.suburb', 'alex')
@@ -153,7 +156,7 @@ export default function App() {
   const schedule = useSchedule(suburb, chosen?.id)
   const official = schedule.available
   const slots = official ? officialSlots(schedule.days, stage) : slotsFor(suburb.group, stage)
-  const ctx = { setScrub, suburb, stage, isLive, live, cityStage, slots, official, schedule, chosenArea: chosen, setArea, setTab, draft, setDraft, ...community }
+  const ctx = { auth, setScrub, suburb, stage, isLive, live, cityStage, slots, official, schedule, chosenArea: chosen, setArea, setTab, draft, setDraft, ...community }
 
   // The whole app takes on the mood of the street: warm and calm, amber when risk builds, deep red when the lights are out.
   const mine = community.incidents.filter((i) => i.suburb === suburb.id)
@@ -177,6 +180,7 @@ export default function App() {
   return (
     <div className="app world">
       <A11yLayer />
+      <AuthDialog auth={auth} />
       <a className="skip" href="#main" onClick={(e) => { e.preventDefault(); mainRef.current?.focus() }}>{t('Skip to content')}</a>
       <header className="top float">
         <span className="logo"><LogoMark /></span>
@@ -206,6 +210,7 @@ export default function App() {
           <button type="button" className="ghost" onClick={() => setA11yOpen(false)}>{t('Done')}</button>
         </div>}
         {settings && <div className="settings">
+          <AccountPanel auth={auth} />
           <div className="place-tools">
             <button type="button" className="ghost" onClick={() => locate(false)}><Icon name="pin" /> {t('Use my location')}</button>
             <FindPlace onPick={(p) => { joinPlace(p.lat, p.lng, p.name); setSettings(false) }} />
