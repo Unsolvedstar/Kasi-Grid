@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import Wizard from '../components/Wizard.jsx'
 import Compose from '../components/Compose.jsx'
 import Icon from '../components/Icon.jsx'
 import { useT } from '../i18n.jsx'
@@ -59,8 +60,8 @@ export default function Alerts({ suburb, stage, isLive, live, cityStage, slots, 
     setTimeout(() => URL.revokeObjectURL(url), 1000)
   }
 
-  const submit = async (e) => {
-    e.preventDefault()
+  const [wk, setWk] = useState(0)
+  const submit = async () => {
     if (!form.text.trim() || busy) return
     setBusy(true)
     try {
@@ -68,6 +69,7 @@ export default function Alerts({ suburb, stage, isLive, live, cityStage, slots, 
       setForm({ ...form, text: '' })
       setPin(null)
       setErr('')
+      setWk((n) => n + 1)
     } catch (x) {
       setErr(x.message)
     }
@@ -135,19 +137,37 @@ export default function Alerts({ suburb, stage, isLive, live, cityStage, slots, 
 
       <section className="card">
         <h2>{t('Report a problem in {name}', { name: suburb.name })}</h2>
-        <form onSubmit={submit} className="form" ref={formRef}>
-          <div className="chips">
-            {Object.entries(REPORT_TYPES).map(([k, v]) => (
-              <button type="button" key={k} aria-pressed={form.type === k} className={form.type === k ? 'chip on' : 'chip'} onClick={() => setForm({ ...form, type: k })}>
-                <Icon name={v.icon} /> {t(v.label)}
-              </button>
-            ))}
-          </div>
-          <Compose max={280} rows={2} placeholder={t('What did you see? Where? (street or landmark)')} value={form.text} onChange={(text) => setForm({ ...form, text })} suggestions={(SUGGEST[form.type] || []).map((x) => t(x))} />
-          <PinPicker suburb={suburb} value={pin} onChange={setPin} />
-          {err && <p className="notice" role="alert">{err}</p>}
-          <button className="primary" disabled={!form.text.trim() || busy}>{busy ? t('Sending…') : t('Send report')}</button>
-        </form>
+        <div ref={formRef}>
+          <Wizard
+            key={wk}
+            finishLabel={t('Send report')}
+            busy={busy}
+            error={err}
+            onFinish={submit}
+            steps={[
+              {
+                id: 'type', title: t('What kind of problem?'), valid: true,
+                content: (
+                  <div className="chips">
+                    {Object.entries(REPORT_TYPES).map(([k, v]) => (
+                      <button type="button" key={k} aria-pressed={form.type === k} className={form.type === k ? 'chip on' : 'chip'} onClick={() => setForm({ ...form, type: k })}>
+                        <Icon name={v.icon} /> {t(v.label)}
+                      </button>
+                    ))}
+                  </div>
+                ),
+              },
+              {
+                id: 'what', title: t('What did you see?'), hint: t('Say where it is: a street or landmark helps neighbours confirm it.'), valid: !!form.text.trim(),
+                content: <Compose max={280} rows={3} placeholder={t('What did you see? Where? (street or landmark)')} value={form.text} onChange={(text) => setForm({ ...form, text })} suggestions={(SUGGEST[form.type] || []).map((x) => t(x))} />,
+              },
+              {
+                id: 'where', title: t('Pin the exact spot (optional)'), hint: t('A pin shows neighbours and the municipality exactly where to look.'), valid: true,
+                content: <PinPicker suburb={suburb} value={pin} onChange={setPin} />,
+              },
+            ]}
+          />
+        </div>
         <p className="muted small">When {CONFIRM_THRESHOLD}+ neighbours confirm, a report is marked Confirmed and can be escalated to the municipality.</p>
       </section>
 

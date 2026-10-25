@@ -1,12 +1,15 @@
 import { mkdirSync } from 'node:fs'
-import { createClient } from '@libsql/client'
 
 // Local SQLite file by default. Set DATABASE_URL (and DATABASE_AUTH_TOKEN) to use a hosted libSQL/Turso database.
-if (!process.env.DATABASE_URL) mkdirSync('data', { recursive: true })
-export const db = createClient({
-  url: process.env.DATABASE_URL || 'file:data/kasi.db',
-  authToken: process.env.DATABASE_AUTH_TOKEN,
-})
+// On Vercel there is no persistent disk: a hosted database is required for real use. Without one the app still starts on a
+// throwaway file in /tmp, which is wiped whenever the function restarts (fine for a quick look, not for real data).
+const onVercel = !!process.env.VERCEL
+const url = process.env.DATABASE_URL || (onVercel ? 'file:/tmp/kasi.db' : 'file:data/kasi.db')
+if (!process.env.DATABASE_URL && !onVercel) mkdirSync('data', { recursive: true })
+// A remote database needs only the small web client, so no native SQLite binary has to ship to the serverless function.
+const remote = /^(libsql|https?|wss?):/.test(url)
+const { createClient } = await import(remote ? '@libsql/client/web' : '@libsql/client')
+export const db = createClient({ url, authToken: process.env.DATABASE_AUTH_TOKEN })
 
 const HOUR = 3600 * 1000
 

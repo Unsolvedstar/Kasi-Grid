@@ -4,6 +4,7 @@ import LogoMark from './components/LogoMark.jsx'
 import { SUBURBS } from './data.js'
 import { CITIES, cityOf, findSuburb, placeNames } from '../shared/suburbs.js'
 import { communityFor, reverseName, useFillNames } from './places.js'
+import { accuracyWords, bestFix } from './geo.js'
 import FindPlace from './components/FindPlace.jsx'
 import { useCityStage, useLiveStage, useSchedule } from './live.js'
 import { useCommunity } from './api.js'
@@ -75,6 +76,7 @@ export default function App() {
   const [suburbId, setSuburbId] = useLocalStorage('kg2.suburb', 'alex')
   // Places outside the covered suburbs: any spot in South Africa is a community of about 2 km, named by whoever joined it.
   const [places, setPlaces] = useLocalStorage('kg2.places', {})
+  const [me, setMe] = useLocalStorage('kg2.me', null) // the last precise fix, shown as a dot on the map
   for (const [id, name] of Object.entries(places)) placeNames.set(id, name)
   const [locMsg, setLocMsg] = useState('')
   const joinPlace = async (lat, lng, name) => {
@@ -86,17 +88,21 @@ export default function App() {
     return { ...c, name: label }
   }
   // Pick the covered area nearest to the device. `quiet` is the silent first-visit attempt.
-  const locate = (quiet) => {
-    if (!navigator.geolocation) { if (!quiet) setLocMsg('Location is not available on this device.'); return }
+  const locate = async (quiet) => {
     if (!quiet) setLocMsg('Finding you…')
-    navigator.geolocation.getCurrentPosition(
-      async (p) => {
-        const c = await joinPlace(p.coords.latitude, p.coords.longitude)
-        if (!quiet) setLocMsg(c.name ? `You are in the ${c.name} community.` : 'You are now in the community around your location.')
-      },
-      () => { if (!quiet) setLocMsg('Could not get your location. Pick your area from the list.') },
-      { timeout: 8000, maximumAge: 10 * 60e3 },
-    )
+    // The silent first-visit attempt takes a quick good-enough fix. Pressing the button waits for a precise one.
+    const { fix, error } = await bestFix({
+      target: quiet ? 120 : 20,
+      timeout: quiet ? 6000 : 20000,
+      onProgress: (f) => { if (!quiet) setLocMsg(`Getting a precise fix… about ${f.acc} m so far`) },
+    })
+    if (!fix) {
+      if (!quiet) setLocMsg(error === 'denied' ? 'Location is blocked for this site. Allow it in your browser settings, or pick your area from the list.' : 'Could not get your location. Move outside or near a window, then try again, or pick your area from the list.')
+      return
+    }
+    setMe(fix)
+    const c = await joinPlace(fix.lat, fix.lng)
+    if (!quiet) setLocMsg((c.name ? `You are in the ${c.name} community. ` : 'You are now in the community around your location. ') + `Your phone says it is ${accuracyWords(fix.acc)}, about ${fix.acc} m.` + (fix.acc > 300 ? ' For a better fix, switch on GPS (high accuracy) and try outside.' : ''))
   }
   useEffect(() => {
     try { if (localStorage.getItem('kg2.suburb') === null) locate(true) } catch { /* storage blocked */ }
@@ -228,6 +234,7 @@ export default function App() {
       <div className="stage-layer" aria-hidden="true">
         <Suspense fallback={null}><StreetSat
           ambient
+          me={me}
           seed={suburb.id}
           power={risk.power}
           water={risk.water}

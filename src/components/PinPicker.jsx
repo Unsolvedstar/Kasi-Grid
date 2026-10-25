@@ -3,6 +3,7 @@ import { MapContainer, TileLayer, CircleMarker, useMap, useMapEvents } from 'rea
 import Icon from './Icon.jsx'
 import { useT } from '../i18n.jsx'
 import { inSouthAfrica } from '../../shared/suburbs.js'
+import { accuracyWords, bestFix } from '../geo.js'
 
 function Click({ onPick }) {
   useMapEvents({ click: (e) => onPick({ lat: e.latlng.lat, lng: e.latlng.lng, acc: null }) })
@@ -19,20 +20,14 @@ export default function PinPicker({ suburb, value, onChange }) {
   const t = useT()
   const [open, setOpen] = useState(false)
   const [msg, setMsg] = useState('')
-  const gps = () => {
-    if (!navigator.geolocation) { setMsg('Location is not available on this device.'); return }
+  const gps = async () => {
     setMsg('Finding you…')
-    navigator.geolocation.getCurrentPosition(
-      (p) => {
-        const pin = { lat: p.coords.latitude, lng: p.coords.longitude, acc: Math.round(p.coords.accuracy) }
-        if (!inSouthAfrica(pin.lat, pin.lng)) { setMsg('Your location is outside South Africa.'); return }
-        onChange(pin)
-        setOpen(true)
-        setMsg(`Pinned, accurate to about ${pin.acc} m.`)
-      },
-      () => setMsg('Could not get your location. Tap the map instead.'),
-      { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 },
-    )
+    const { fix, error } = await bestFix({ target: 15, timeout: 15000, onProgress: (f) => setMsg(`Getting a precise fix… about ${f.acc} m so far`) })
+    if (!fix) { setMsg(error === 'denied' ? 'Location is blocked for this site. Tap the map instead.' : 'Could not get your location. Tap the map instead.'); return }
+    if (!inSouthAfrica(fix.lat, fix.lng)) { setMsg('Your location is outside South Africa.'); return }
+    onChange({ lat: fix.lat, lng: fix.lng, acc: fix.acc })
+    setOpen(true)
+    setMsg(`Pinned, ${accuracyWords(fix.acc)}: about ${fix.acc} m.${fix.acc > 100 ? ' Drag the map or tap to place it exactly.' : ''}`)
   }
   return (
     <div className="pin-picker">

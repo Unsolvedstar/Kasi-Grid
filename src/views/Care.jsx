@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import Wizard from '../components/Wizard.jsx'
+import Compose from '../components/Compose.jsx'
 import Dial from '../components/Dial.jsx'
 import Icon from '../components/Icon.jsx'
 import { api, useForecast } from '../api.js'
@@ -77,6 +79,7 @@ function PowerPlan({ suburb, incidents, onGetBackup }) {
   const { plan, track, status, stage, due } = b
   const f = useForecast(suburb.id, incidents.length)
   const [reading, setReading] = useState('')
+  const [wizard, setWizard] = useState(() => !(b.runtime > 0)) // first time, or editing, the plan is a short step-by-step setup
   const [perm, setPerm] = useState(typeof Notification !== 'undefined' ? Notification.permission : 'denied')
   const runtime = b.runtime
   const power = incidents.find((i) => i.suburb === suburb.id && i.type === 'power' && !i.resolved)
@@ -108,25 +111,56 @@ function PowerPlan({ suburb, incidents, onGetBackup }) {
     <section className={`card ${power || due ? 'pulse bad' : ''}`}>
       <h2><Icon name="health" /> {t('Medical power plan')}</h2>
       <p className="muted small">{t('For a household that depends on power for oxygen, a nebuliser, CPAP or medicine that must stay cold. Find the watts on the device label and the watt-hours on the battery. This stays on your phone and is not medical advice.')}</p>
-      <div className="fields">
-        <Dial tone="power" label={t('Device power (watts)')} unit="W" value={plan.watts} onChange={(v) => set('watts', v)} min={0} max={500} step={5}
-          presets={[{ label: t('CPAP about 40'), value: 40 }, { label: t('Nebuliser about 100'), value: 100 }, { label: t('Concentrator about 300'), value: 300 }]} hint={t('Typical values. The label on your device is more accurate.')} />
-        <Dial tone="water" label={t('Battery size (watt-hours)')} unit="Wh" value={plan.wh} onChange={(v) => set('wh', v)} min={0} max={3000} step={50}
-          presets={[{ label: '300', value: 300 }, { label: '500', value: 500 }, { label: '1000', value: 1000 }, { label: '2000', value: 2000 }]} />
-        <Dial glyph="battery" label={t('Charged to (%)')} unit="%" value={plan.charge} onChange={(v) => set('charge', v)} min={0} max={100} step={1}
-          presets={[{ label: '25%', value: 25 }, { label: '50%', value: 50 }, { label: '75%', value: 75 }, { label: '100%', value: 100 }]} />
-        <Dial label={t('Battery health (%)')} unit="%" value={plan.health} onChange={(v) => set('health', v)} min={10} max={100} step={1}
-          presets={[{ label: t('New 100'), value: 100 }, { label: t('Used 85'), value: 85 }, { label: t('Old 70'), value: 70 }]} />
-        <label>{t('Battery type')}
-          <select value={plan.chemistry} onChange={(e) => set('chemistry', e.target.value)}>
-            {Object.entries(CHEMISTRY).map(([k, v]) => <option key={k} value={k}>{t(v.label)}</option>)}
-          </select>
-        </label>
-      </div>
-      <label className="check"><input type="checkbox" checked={plan.inverter !== false} onChange={(e) => set('inverter', e.target.checked)} /> {t('The device plugs into a plug-in power station or inverter (not straight from the battery)')}</label>
-      <label className="check"><input type="checkbox" checked={!!plan.lifeSupport} onChange={(e) => set('lifeSupport', e.target.checked)} /> {t('Someone cannot be without this device (life support). Warn me to call the ambulance earlier.')}</label>
+      {wizard ? (
+        <Wizard
+          steps={[
+            {
+              id: 'device', title: t('Your medical device'), hint: t('Find the watts on the label on the back or the power supply.'), valid: Number(plan.watts) > 0,
+              content: <Dial tone="power" label={t('Device power (watts)')} unit="W" value={plan.watts} onChange={(v) => set('watts', v)} min={0} max={500} step={5}
+                presets={[{ label: t('CPAP about 40'), value: 40 }, { label: t('Nebuliser about 100'), value: 100 }, { label: t('Concentrator about 300'), value: 300 }]} hint={t('Typical values. The label on your device is more accurate.')} />,
+            },
+            {
+              id: 'battery', title: t('Your battery'), hint: t('The watt-hours (Wh) are printed on the battery or power station.'), valid: Number(plan.wh) > 0,
+              content: (
+                <>
+                  <Dial tone="water" label={t('Battery size (watt-hours)')} unit="Wh" value={plan.wh} onChange={(v) => set('wh', v)} min={0} max={3000} step={50}
+                    presets={[{ label: '300', value: 300 }, { label: '500', value: 500 }, { label: '1000', value: 1000 }, { label: '2000', value: 2000 }]} />
+                  <Dial glyph="battery" label={t('Charged to (%)')} unit="%" value={plan.charge} onChange={(v) => set('charge', v)} min={0} max={100} step={1}
+                    presets={[{ label: '25%', value: 25 }, { label: '50%', value: 50 }, { label: '75%', value: 75 }, { label: '100%', value: 100 }]} />
+                  <Dial label={t('Battery health (%)')} unit="%" value={plan.health} onChange={(v) => set('health', v)} min={10} max={100} step={1}
+                    presets={[{ label: t('New 100'), value: 100 }, { label: t('Used 85'), value: 85 }, { label: t('Old 70'), value: 70 }]} />
+                  <label>{t('Battery type')}
+                    <select value={plan.chemistry} onChange={(e) => set('chemistry', e.target.value)}>
+                      {Object.entries(CHEMISTRY).map(([k, v]) => <option key={k} value={k}>{t(v.label)}</option>)}
+                    </select>
+                  </label>
+                  <label className="check"><input type="checkbox" checked={plan.inverter !== false} onChange={(e) => set('inverter', e.target.checked)} /> {t('The device plugs into a plug-in power station or inverter (not straight from the battery)')}</label>
+                </>
+              ),
+            },
+            {
+              id: 'safety', title: t('How important is it?'), valid: true,
+              content: (
+                <>
+                  <label className="check"><input type="checkbox" checked={!!plan.lifeSupport} onChange={(e) => set('lifeSupport', e.target.checked)} /> {t('Someone cannot be without this device (life support). Warn me to call the ambulance earlier.')}</label>
+                  <p className="muted small">{t('You can add an emergency contact further down this page, so a text with your location can be sent without a call.')}</p>
+                </>
+              ),
+            },
+          ]}
+          finishLabel={t('Show my battery time')}
+          onFinish={() => setWizard(false)}
+        />
+      ) : (
+        <div className="batt-summary">
+          <p className="muted small">{plan.watts} W · {plan.wh} Wh · {t(CHEMISTRY[plan.chemistry]?.label || '')}{plan.lifeSupport ? ` · ${t('life support')}` : ''}</p>
+          <Dial glyph="battery" label={t('Charged to (%)')} unit="%" value={plan.charge} onChange={(v) => set('charge', v)} min={0} max={100} step={1}
+            presets={[{ label: '25%', value: 25 }, { label: '50%', value: 50 }, { label: '75%', value: 75 }, { label: '100%', value: 100 }]} />
+          <button type="button" className="ghost" onClick={() => setWizard(true)}>{t('Edit battery details')}</button>
+        </div>
+      )}
 
-      {runtime > 0 ? (
+      {!wizard && runtime > 0 ? (
         <>
           <p className="big">{t('From {c}% your battery runs it for about {h}.', { c: Math.round(Number(plan.charge) || 0), h: fmt(runtime) })}</p>
           <p className="muted small">{t('Counts {h}% battery health, {d}% of the battery usable and {e}% efficiency. Real use can differ, so log the battery display below for a measured figure.', { h: Math.round(Number(plan.health) || 100), d: dod, e: eff })}</p>
@@ -167,9 +201,7 @@ function PowerPlan({ suburb, incidents, onGetBackup }) {
             runtime < 8 && <p className="muted small">{t('Many outages last longer than this. A bigger battery or a backup gives you more time.')}</p>
           )}
         </>
-      ) : (
-        <p className="muted small">{t('Enter the device watts and the battery watt-hours to see how long your battery lasts.')}</p>
-      )}
+      ) : null}
 
       <EmergencyContact />
       <div className={`emergency ${due ? 'due' : ''}`}>
@@ -231,8 +263,8 @@ function Book({ suburb, preset, clearPreset, onBooked }) {
   const pickService = (k) => setF({ ...f, service: k, equipment: k === 'oxygen' ? ['swap'] : [], urgent: false })
   const toggle = (k) => setF({ ...f, equipment: f.equipment.includes(k) ? f.equipment.filter((x) => x !== k) : [...f.equipment, k] })
 
-  const submit = async (e) => {
-    e.preventDefault()
+  const [wk, setWk] = useState(0)
+  const submit = async () => {
     if (!q || busy) return
     setBusy(true)
     setErr('')
@@ -240,6 +272,7 @@ function Book({ suburb, preset, clearPreset, onBooked }) {
       const r = await api('/care/bookings', { method: 'POST', body: { ...f, pickup, suburb: suburb.id, hours: needsCarer ? Number(f.hours) : 0, start: new Date(f.start).getTime() } })
       setDone(r)
       setF({ ...blank, service: f.service, equipment: f.service === 'oxygen' ? ['swap'] : [] })
+      setWk((n) => n + 1)
       onBooked()
     } catch (x) {
       setErr(x.message)
@@ -247,73 +280,105 @@ function Book({ suburb, preset, clearPreset, onBooked }) {
     setBusy(false)
   }
 
-  return (
-    <section className="card">
-      <h2>{t('Book a delivery, care or equipment in {name}', { name: suburb.name })}</h2>
-      <form className="form" onSubmit={submit}>
-        <div className="chips">
-          {CARE_SERVICES.map((k) => (
-            <button type="button" key={k} aria-pressed={f.service === k} className={f.service === k ? 'chip on' : 'chip'} onClick={() => pickService(k)}>
-              {t(SERVICES[k].label)}
-            </button>
-          ))}
-        </div>
-        <p className="muted small">{t(SERVICES[f.service].note)}{needsCarer ? ` · ${zar(SERVICES[f.service].rate)} ${t('an hour')}` : ''}</p>
-        {delivery && (
-          <div className="fields">
+  const doneMsg = done && (
+    <p className="notice" role="status">{done.status === 'awaiting_prescription' ? t('Booked. We are waiting for the prescription to be approved.') : done.status === 'unfilled' ? t(delivery ? 'No runner is available near you right now. Try again shortly.' : 'No carer is available near you right now. Try another time.') : t(delivery ? 'Booked. The nearest runners have been asked.' : 'Booked. The nearest carers have been asked.')}</p>
+  )
+  const hoursOk = !needsCarer || (Number(f.hours) >= MIN_HOURS && Number(f.hours) <= MAX_HOURS)
+  const steps = [
+    {
+      id: 'what', title: t('What do you need?'), valid: true,
+      content: (
+        <>
+          <div className="chips">
+            {CARE_SERVICES.map((k) => (
+              <button type="button" key={k} aria-pressed={f.service === k} className={f.service === k ? 'chip on' : 'chip'} onClick={() => pickService(k)}>
+                {t(SERVICES[k].label)}
+              </button>
+            ))}
+          </div>
+          <p className="muted small">{t(SERVICES[f.service].note)}{needsCarer ? ` · ${zar(SERVICES[f.service].rate)} ${t('an hour')}` : ''}</p>
+        </>
+      ),
+    },
+    {
+      id: 'details', title: t('Details'), valid: !!q && !!f.start && hoursOk,
+      hint: f.service === 'equipment' ? t('Pick the equipment you need.') : undefined,
+      content: (
+        <>
+          {delivery && (
             <label>{t('Collect from')}
               <select value={pickup} onChange={(e) => setF({ ...f, pickup: e.target.value })}>
                 {pickups.map((p) => <option key={p.id} value={p.id}>{p.label} · {p.km.toFixed(1)} km</option>)}
               </select>
             </label>
-          </div>
-        )}
-        <div className="fields">
-          {needsCarer && (
-            <label>{t('Hours')}
-              <input type="number" min={MIN_HOURS} max={MAX_HOURS} value={f.hours} onChange={(e) => setF({ ...f, hours: e.target.value })} />
-            </label>
           )}
+          {needsCarer && <Dial label={t('Hours')} unit="h" value={f.hours} onChange={(v) => setF({ ...f, hours: v })} min={MIN_HOURS} max={MAX_HOURS} step={1} presets={[{ label: '2', value: 2 }, { label: '4', value: 4 }, { label: '8', value: 8 }]} />}
           {!(delivery && f.urgent) && <label>{t(needsCarer ? 'Start' : 'Deliver on')}
             <input type="datetime-local" value={f.start} min={localInput(Date.now() + 3600 * 1000)} onChange={(e) => setF({ ...f, start: e.target.value })} required />
           </label>}
+          {delivery && (
+            <label className="check"><input type="checkbox" checked={f.urgent} onChange={(e) => setF({ ...f, urgent: e.target.checked })} /> {t('Urgent: send a runner now (adds {amount})', { amount: zar(URGENT_FEE) })}</label>
+          )}
+          {f.service !== 'meds' && <fieldset className="checks">
+            <legend className="muted small">{t(delivery ? 'Cylinder' : 'Equipment')}</legend>
+            {Object.entries(EQUIPMENT).filter(([k]) => (f.service === 'oxygen' ? O2_ITEMS.includes(k) : true)).map(([k, v]) => (
+              <label key={k}>
+                <input type="checkbox" checked={f.equipment.includes(k)} onChange={() => toggle(k)} /> {t(v.label)}
+                <span className="muted small"> · {v.price != null ? zar(v.price) : t('price from supplier')}{v.rx ? ` · ${t('needs a prescription')}` : ''}</span>
+              </label>
+            ))}
+          </fieldset>}
+        </>
+      ),
+    },
+    {
+      id: 'who', title: t('Who is it for, and where?'), valid: !!f.patient.trim() && !!f.landmark.trim(),
+      content: (
+        <>
           <label>{t('Patient first name')}
             <input maxLength={40} value={f.patient} onChange={(e) => setF({ ...f, patient: e.target.value })} required />
           </label>
           <label>{t('Street or landmark')}
             <input maxLength={120} value={f.landmark} onChange={(e) => setF({ ...f, landmark: e.target.value })} required />
           </label>
-        </div>
-        <label className="stackfield">{t('Care needs (optional)')}
-          <textarea rows="2" maxLength={280} value={f.needs} onChange={(e) => setF({ ...f, needs: e.target.value })} />
-        </label>
-        {delivery && (
-          <label className="checks"><input type="checkbox" checked={f.urgent} onChange={(e) => setF({ ...f, urgent: e.target.checked })} /> {t('Urgent: send a runner now (adds {amount})', { amount: zar(URGENT_FEE) })}</label>
-        )}
-        {f.service !== 'meds' && <fieldset className="checks">
-          <legend className="muted small">{t(delivery ? 'Cylinder' : 'Equipment')}</legend>
-          {Object.entries(EQUIPMENT).filter(([k]) => (f.service === 'oxygen' ? O2_ITEMS.includes(k) : true)).map(([k, v]) => (
-            <label key={k}>
-              <input type="checkbox" checked={f.equipment.includes(k)} onChange={() => toggle(k)} /> {t(v.label)}
-              <span className="muted small"> · {v.price != null ? zar(v.price) : t('price from supplier')}{v.rx ? ` · ${t('needs a prescription')}` : ''}</span>
-            </label>
-          ))}
-        </fieldset>}
-        {q && (
-          <div className="notice" role="status">
-            <strong>{t('Total {amount}', { amount: zar(q.total) })}</strong>
-            {needsCarer && <> · {t('carer {amount}', { amount: zar(q.carer) })}</>}
-            {delivery && <> · {t('delivery {amount} ({km} km)', { amount: zar(q.fee), km: q.km })}</>}
-            {q.equipmentTotal > 0 && <> · {t('equipment {amount}', { amount: zar(q.equipmentTotal) })}</>}
-            {q.quotedItems.length > 0 && <> · {t('{n} items priced by the supplier', { n: q.quotedItems.length })}</>}
-            {q.needsPrescription && <p className="small">{t(f.service === 'meds' ? 'Medicine needs a valid prescription. The pharmacy checks it and packs it sealed. You pay the pharmacy for the medicine; the runner only carries the sealed pack.' : 'Oxygen needs a prescription. A clinician approves it before anything is sent.')}</p>}
-          </div>
-        )}
-        {!q && f.service === 'equipment' && <p className="muted small">{t('Pick the equipment you need.')}</p>}
-        {err && <p className="notice" role="alert">{err}</p>}
-        {done && <p className="notice" role="status">{done.status === 'awaiting_prescription' ? t('Booked. We are waiting for the prescription to be approved.') : done.status === 'unfilled' ? t(delivery ? 'No runner is available near you right now. Try again shortly.' : 'No carer is available near you right now. Try another time.') : t(delivery ? 'Booked. The nearest runners have been asked.' : 'Booked. The nearest carers have been asked.')}</p>}
-        <button className="primary" disabled={!q || busy}>{busy ? t('Sending…') : t('Book now')}</button>
-      </form>
+          <label className="stackfield">{t('Care needs (optional)')}
+            <Compose max={280} rows={2} value={f.needs} onChange={(needs) => setF({ ...f, needs })} label={t('Care needs (optional)')} />
+          </label>
+        </>
+      ),
+    },
+    {
+      id: 'review', title: t('Check and book'), valid: !!q,
+      content: (
+        <>
+          <ul className="list wiz-sum">
+            <li><span>{t('For')}</span><strong>{t(SERVICES[f.service].label)}</strong></li>
+            <li><span>{t('Patient')}</span><strong>{f.patient}</strong></li>
+            <li><span>{t('Where')}</span><strong>{f.landmark}</strong></li>
+            {!(delivery && f.urgent) && <li><span>{t(needsCarer ? 'Start' : 'Deliver on')}</span><strong>{f.start ? fmtStart(new Date(f.start).getTime()) : ''}</strong></li>}
+            {needsCarer && <li><span>{t('Hours')}</span><strong>{f.hours}</strong></li>}
+            {delivery && f.urgent && <li><span>{t('Urgent')}</span><strong>{t('A runner now')}</strong></li>}
+          </ul>
+          {q && (
+            <div className="notice" role="status">
+              <strong>{t('Total {amount}', { amount: zar(q.total) })}</strong>
+              {needsCarer && <> · {t('carer {amount}', { amount: zar(q.carer) })}</>}
+              {delivery && <> · {t('delivery {amount} ({km} km)', { amount: zar(q.fee), km: q.km })}</>}
+              {q.equipmentTotal > 0 && <> · {t('equipment {amount}', { amount: zar(q.equipmentTotal) })}</>}
+              {q.quotedItems.length > 0 && <> · {t('{n} items priced by the supplier', { n: q.quotedItems.length })}</>}
+              {q.needsPrescription && <p className="small">{t(f.service === 'meds' ? 'Medicine needs a valid prescription. The pharmacy checks it and packs it sealed. You pay the pharmacy for the medicine; the runner only carries the sealed pack.' : 'Oxygen needs a prescription. A clinician approves it before anything is sent.')}</p>}
+            </div>
+          )}
+        </>
+      ),
+    },
+  ]
+
+  return (
+    <section className="card">
+      <h2>{t('Book a delivery, care or equipment in {name}', { name: suburb.name })}</h2>
+      {doneMsg}
+      <Wizard key={wk} steps={steps} finishLabel={t('Book now')} busy={busy} error={err} onFinish={submit} />
     </section>
   )
 }

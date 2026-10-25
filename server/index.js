@@ -689,11 +689,16 @@ app.use((err, req, res, next) => {
 
 await migrate()
 if (process.env.DEMO_MODE === 'true') await startDemo(db)
-const port = Number(process.env.PORT) || 3000
-app.listen(port, () => {
-  console.log(`Kasi Grid API on http://localhost:${port}`)
-  startNamcSchedule()
-  startEspLinking()
-  if (!process.env.ADMIN_TOKEN && ADMIN_TOKEN) console.log(`Admin page: /admin  (dev token: ${ADMIN_TOKEN}, set ADMIN_TOKEN to choose your own)`)
-  if (!ADMIN_TOKEN) console.log('Admin page disabled: set ADMIN_TOKEN to enable it')
-})
+// On Vercel the app is exported as a serverless function (api/index.js) and nothing listens or runs in the background.
+if (!process.env.VERCEL) {
+  const port = Number(process.env.PORT) || 3000
+  app.listen(port, () => {
+    console.log(`Kasi Grid API on http://localhost:${port}`)
+    startNamcSchedule()
+    startEspLinking()
+    if (!process.env.ADMIN_TOKEN && ADMIN_TOKEN) console.log(`Admin page: /admin  (dev token: ${ADMIN_TOKEN}, set ADMIN_TOKEN to choose your own)`)
+    if (!ADMIN_TOKEN) console.log('Admin page disabled: set ADMIN_TOKEN to enable it')
+  })
+}
+
+export default app
