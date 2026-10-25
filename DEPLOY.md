@@ -14,7 +14,8 @@ A disk needs a paid plan. For a free tier, set `DATABASE_URL` and `DATABASE_AUTH
 ## Vercel
 The frontend is served as static files and the API runs as one serverless function (`api/index.js`, configured in `vercel.json`). Vercel has no persistent disk, so the data must live in a hosted database.
 
-1. Create a free Turso database (turso.tech): `turso db create kasi-grid`, then `turso db show kasi-grid --url` and `turso db tokens create kasi-grid`.
+1. Easiest: in the Vercel project open Storage (or Marketplace), add the Turso integration and create a database. It adds `TURSO_DATABASE_URL` and `TURSO_AUTH_TOKEN` for you, and the app reads those. Or create one by hand at turso.tech and set `DATABASE_URL` and `DATABASE_AUTH_TOKEN` yourself.
+   Why it matters: Vercel runs several copies of the app, each with its own temporary disk, so without a shared database reports, verification and accounts would not agree between visitors.
 2. Vercel dashboard: Add New, Project, import this GitHub repo. The framework is detected (Vite); no build settings to change.
 3. Under Settings, Environment Variables, add:
    - `DATABASE_URL`: the Turso URL (`libsql://...`)
