@@ -179,4 +179,4 @@ card(s, 0.5, 1.2, 4.4, 2.0, 'Team', 'Tshedza Tshikovhi (22): software developer,
 card(s, 5.1, 1.2, 4.4, 2.0, 'Why us', 'A developer who ships and a biomedical engineer who knows how people depend on power for health. Built, tested and checked on a phone.', 'EAE7F7', DK)
 card(s, 0.5, 3.4, 9.0, 1.5, 'Source code and demo', `Git repository: ${REPO}${LIVE_URL ? `\nLive app: ${LIVE_URL}` : ''}${VIDEO_URL ? `\nDemo video (90 s): ${VIDEO_URL}` : ''}\nTry: the street slider, Today, Deliver (300 W, 1000 Wh, "Switched to battery"), and the accessibility button.`, 'EAE7F7', DK)
 
-pres.writeFile({ fileName: 'Kasi-Grid-deck.pptx' }).then(() => console.log('ok'))
+pres.writeFile({ fileName: process.env.DECK_OUT || 'Kasi-Grid-deck.pptx' }).then(() => console.log('ok'))
