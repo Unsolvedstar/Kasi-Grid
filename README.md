@@ -1,6 +1,31 @@
 # Kasi Grid
 
-Community resilience for South African townships. Eskom has reported no loadshedding since 16 May 2025 (504 days on 2 October 2026), but households still lose power to load reduction, cable theft and faults, and Johannesburg's water supply keeps failing. Kasi Grid turns neighbour reports into verified local outage alerts. It also has the official loadshedding status for when it returns,  resident-confirmed outage reports, a neighbourhood sharing board, food access, and savings and business-resilience calculators.
+**Know before it goes dark.** Team **Amethyst & Azure** (Tshedza Tshikovhi and Mulanga Munaka), FNB App of the Year Hackathon 2026, track: climate resilience and essential services.
+
+- Live app: https://kasi-grid.vercel.app
+- Demo video (90 seconds): https://drive.google.com/file/d/136fqIx7WRivrNcLZo90X4rfTMUO3MXxv/view?usp=drivesdk
+- This repository: https://github.com/Unsolvedstar/Kasi-Grid
+- Hand-in documents (PDF): [`submission/handin/`](submission/handin/)
+
+Eskom has reported no loadshedding since 16 May 2025 (more than 500 days), but households still lose power to load reduction, cable theft and faults, and Johannesburg's water supply keeps failing. There is no stage or schedule for any of it, so people learn what is happening from rumours in a group chat, not from each other.
+
+## What makes it different
+
+**Kasi Grid brings a community closer together instead of pulling people apart.** Most apps ask you to look at a screen alone. This one only works when neighbours take part: three different neighbours must agree before an outage is verified, a neighbour with a generator or a charger offers help on the community board and shows on the street map as a gold light, and spazas order stock together for lower prices. It is ubuntu, "I am because we are", on a phone.
+
+## What it does
+
+- **A live satellite street.** The home screen is real satellite imagery of the community with every mapped home as a glowing dot. Homes go dark as the risk of a power cut rises; drag a slider through the next 48 hours.
+- **Verified outages** (3 or more different devices), "back on for me" votes, an outage map, and a forecast of when outages cluster and how long they last.
+- **Anywhere in South Africa.** Every place is a community of about 2 km. Reports and posts can carry an exact pin, found with a precise GPS fix.
+- **A medical power plan.** A live battery countdown for a medical device (corrected by readings from the battery display), alerts at 2 hours, 1 hour, 30 minutes and empty, and a one-tap ambulance call. An emergency card texts your location to a contact without a voice call.
+- **Care and equipment booking**, a **small-business outage cost** planner, **pooled restock orders** for spazas, a **community board** for offers and requests, nearby shops and clinics, and savings calculators.
+- **For everyone.** Accessibility settings for people who are deaf, hard of hearing, blind or have low vision (flash, vibration, large-text and spoken alerts, screen-reader announcements, text size, high contrast, reduced motion), four languages, offline, installable.
+- **Accounts are optional.** Everything works anonymously. An account (cell number or email and a password) keeps your area, language, accessibility settings and care bookings on any phone and signs you in automatically.
+
+![The live satellite street](submission/shots/street.png)
+
+Long forms are step-by-step wizards. The code is a React and Vite web app (`src/`), an Express API (`server/`) and shared logic with tests (`shared/`, `tests/`).
 
 ## Run it
 
@@ -18,10 +43,12 @@ npm start        # serves the built app and the API on :3000 (PORT to change)
 
 Docker: `docker build -t kasi-grid . && docker run -p 3000:3000 -v kasi-data:/app/data kasi-grid`
 
+Vercel: the front end is static and the API is one serverless function (`api/index.js`, `vercel.json`); it needs a hosted libSQL database such as Turso. See [DEPLOY.md](DEPLOY.md).
+
 ## Tests
 
 ```
-npm test    # 86 tests: calculations, translations, and the full API including admin and rate limits (starts its own server and temporary database)
+npm test    # 111 tests: calculations, translations, the full API (admin, rate limits, care bookings, accounts), community and location rules, the battery model and alerts. Starts its own server and temporary database
 ```
 
 ## Outage Pulse
@@ -62,10 +89,10 @@ The production build is a PWA. On a phone, use the browser's "Add to home screen
 
 ## How it works
 
-- **Frontend:** React + Vite in `src/`. Savings and business inputs stay in the browser (local storage). Everything shared comes from the API.
-- **Backend:** Express in `server/`. It stores reports, board posts, community places and prices in SQLite (libSQL) at `data/kasi.db`.
+- **Frontend:** React + Vite in `src/`. Savings, business inputs, the medical plan and the emergency contact stay in the browser (local storage). Everything shared comes from the API.
+- **Backend:** Express in `server/`. It stores reports, board posts, community places, prices and optional accounts in SQLite (libSQL) at `data/kasi.db`, or a hosted libSQL database (`DATABASE_URL`, or `TURSO_DATABASE_URL`).
 - **Live data:** the server fetches the loadshedding stage from Eskom (cached 5 minutes) and shops and food outlets from OpenStreetMap (cached 24 hours per suburb, with a fallback mirror).
-- **Identity:** anonymous. Each browser gets a random device id, which limits confirmations to one per device and lets authors close their own posts. There are no accounts.
+- **Identity:** anonymous by default. Each browser gets a random device id, which limits confirmations to one per device and lets authors close their own posts. Accounts are optional (`server/auth.js`): a cell number or email and a password stored only as a salted scrypt hash, with a 90-day HttpOnly session cookie so the app opens signed in. An account syncs only area, places, language and accessibility settings, and links care bookings to the person; the medical plan and emergency contact never leave the phone. Accounts can be deleted in the app.
 - **Safety:** input length limits, no links or phone/ID numbers in posts, per-IP rate limits (300 reads and 30 writes a minute), and items are hidden after 3 reports from different devices.
 
 ## Configuration
@@ -82,8 +109,9 @@ The production build is a PWA. On a phone, use the browser's "Add to home screen
 | `ESP_BASE_URL` | EskomSePush API base URL (default the 3.1 API) |
 | `ESP_DAILY_LIMIT` | Calls per day the server allows itself (default 45, under the free 50) |
 | `NAMC_AUTO` | Set to `off` to stop the daily NAMC food-price check |
-| `DATABASE_URL` | libSQL/Turso URL for a hosted database. Default is the local file `data/kasi.db` |
-| `DATABASE_AUTH_TOKEN` | Token for a hosted database |
+| `DATABASE_URL` (or `TURSO_DATABASE_URL`) | libSQL/Turso URL for a hosted database. Default is the local file `data/kasi.db` |
+| `DATABASE_AUTH_TOKEN` (or `TURSO_AUTH_TOKEN`) | Token for a hosted database |
+| `AUTH_LIMIT` | Sign-in and sign-up attempts per minute per IP (default 10) |
 
 Hosts with an ephemeral disk (most free tiers) lose `data/` on redeploy. Use a persistent volume or a hosted `DATABASE_URL`.
 
@@ -135,10 +163,22 @@ Loadshedding: Eskom's national stage applies to Eskom-supplied areas. The City o
 
 ## Not done yet
 
-Accounts and phone verification, push notifications, native review of translations and translating the long help texts, official 2026/27 water tariffs (eThekwini has none yet; the rest are estimates or single-source), banning repeat abusers by device.
+Phone or email verification and password reset for accounts, background push notifications (alerts need the app open, or the calendar alarms it can add), native review of translations and translating the long help texts, official 2026/27 water tariffs (eThekwini has none yet; the rest are estimates or single-source), banning repeat abusers by device.
 
-## Street tab (the street as a living picture)
+## The street (home screen)
 
-The first tab draws the suburb as a flower of homes. Each home has its own tolerance, so a 40% outage risk darkens about 40% of homes, and you can drag a slider through the next 48 hours to watch the street dim and relight. Power risk comes from the loadshedding slots, the suburb's own outage pattern and any verified outage (`shared/sense.js`, tested in `tests/sense.test.mjs`). Blue motes show water flow, gold lights are neighbours offering help on the Share tab, and threads of light run from them to dark homes. Ripples appear when neighbours report.
+The home screen is real satellite imagery of the community with the sections as sheets you pull up over it. Every home mapped in OpenStreetMap is a dot (`GET /api/buildings`, fetched once per community and cached on the server, with the drawn street as a fallback). Each home has its own tolerance, so a 40% outage risk darkens about 40% of homes, and you can drag a slider through the next 48 hours to watch the street dim and relight. Power risk comes from the loadshedding slots, the community's own outage pattern and any verified outage (`shared/sense.js`, tested in `tests/sense.test.mjs`). Gold lights are neighbours offering help on the Share tab. A blue dot shows where you are, with the accuracy range. Tap the map to explore it full screen.
 
-It also works with no reading at all: **Hear it** plays a chord made on the phone that goes out of tune and sinks as risk rises, **Tell me** speaks a summary and gives a heartbeat vibration (one soft beat calm, double for risk, long for an outage). Dots are example homes, not real addresses. The speech voice depends on the phone, and isiZulu, Sesotho and Afrikaans strings are not yet translated for this tab.
+It also works with no reading at all: **Hear it** plays a chord made on the phone that goes out of tune and sinks as risk rises, **Tell me** speaks a summary (and shows it as text) and gives a heartbeat vibration. Dots are real mapped buildings but say nothing about any one household. The speech voice depends on the phone.
+
+## Anywhere in South Africa
+
+Beyond the curated townships, any spot in the country is a community: a grid cell about 2 km across (`communityId` in `shared/suburbs.js`). People find a place by search or by location, and share reports, outages and help with everyone in the same cell. Reports and board posts take an optional exact pin (validated to be inside South Africa and near the community). Board posts are shown to others only to about 100 metres so no home is given away.
+
+## Medical power plan, alerts and the emergency card
+
+`shared/care.js` turns a device's watts and a battery's watt-hours, charge, health, chemistry and inverter loss into honest runtime hours. Tapping "switched to battery" starts a live countdown that is corrected by readings from the battery's own display (`remainingHours`). Alerts fire at 2 hours, 1 hour, 30 minutes and empty through sound, vibration, screen flash, spoken words and large text, whichever the person has switched on. A device flagged as life support gets the ambulance prompt a stage earlier. The emergency card sends the person's location by text or WhatsApp to a saved contact. This is a planning aid and not medical advice. The medical plan and the contact stay on the phone.
+
+## Accessibility
+
+An accessibility button on every screen opens quick setups for people who are deaf or hard of hearing (flash, vibration, captions) and blind or with low vision (spoken alerts, screen-reader announcements, full-height panels), plus text size up to 200%, high contrast, a bright theme, and reduced motion. See `src/a11y.js`.
