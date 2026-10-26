@@ -4,7 +4,7 @@ const fs = require('fs')
 const pptxgen = require('pptxgenjs')
 const REPO = 'https://github.com/Unsolvedstar/Kasi-Grid'
 const LIVE_URL = 'https://kasi-grid.vercel.app'
-const VIDEO_URL = 'https://drive.google.com/file/d/136fqIx7WRivrNcLZo90X4rfTMUO3MXxv/view?usp=drivesdk'
+const VIDEO_URL = 'https://drive.google.com/file/d/1W5WRlFDxXRhA3byGrrqE1VEr6Otl4hOX/view?usp=drivesdk'
 
 const pres = new pptxgen()
 pres.layout = 'LAYOUT_16x9'
