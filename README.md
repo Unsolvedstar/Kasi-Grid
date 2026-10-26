@@ -3,7 +3,7 @@
 **Know before it goes dark.** Team **Amethyst & Azure** (Tshedza Tshikovhi and Mulanga Munaka), FNB App of the Year Hackathon 2026, track: climate resilience and essential services.
 
 - Live app: https://kasi-grid.vercel.app
-- Demo video (90 seconds): https://drive.google.com/file/d/1W5WRlFDxXRhA3byGrrqE1VEr6Otl4hOX/view?usp=drivesdk
+- Demo video (90 seconds): https://drive.google.com/file/d/1vZBvpxMXeu8RfhizZllfzZQadJr1p1d-/view?usp=drive_link
 - This repository: https://github.com/Unsolvedstar/Kasi-Grid
 - Hand-in documents (PDF): [`submission/handin/`](submission/handin/)
 

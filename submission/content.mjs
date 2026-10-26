@@ -8,7 +8,7 @@ export const APP = 'Kasi Grid'
 export const REPO = 'https://github.com/Unsolvedstar/Kasi-Grid'
 export const LIVE_URL = 'https://kasi-grid.vercel.app'
 export const DEMO_LOGIN = { email: 'judge1@kasigrid.demo', email2: 'judge2@kasigrid.demo', password: 'KasiGrid2026!' }
-export const VIDEO_URL = 'https://drive.google.com/file/d/1W5WRlFDxXRhA3byGrrqE1VEr6Otl4hOX/view?usp=drivesdk'
+export const VIDEO_URL = 'https://drive.google.com/file/d/1vZBvpxMXeu8RfhizZllfzZQadJr1p1d-/view?usp=drive_link'
 export const HACK = 'FNB App of the Year Hackathon 2026'
 export const TRACK = 'Climate resilience and essential services'
 export const TAGLINE = 'Know before it goes dark.'
