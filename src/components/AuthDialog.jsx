@@ -54,12 +54,12 @@ export default function AuthDialog({ auth }) {
       <form className="auth" role="dialog" aria-modal="true" aria-labelledby="auth-h" onSubmit={submit}>
         <button type="button" className="auth-x" onClick={() => setOpen(false)} aria-label={t('Close')}><Icon name="close" /></button>
         <h2 id="auth-h">{register ? t('Create your free account') : t('Welcome back')}</h2>
-        <p className="muted small">{t('Optional. Kasi Grid works without an account. An account keeps your area, language and accessibility settings, and your bookings, on any phone, and you stay signed in.')}</p>
+        <p className="muted small">{t('Kasi Grid is a community of real neighbours. You can look around without an account, but to report, confirm or offer help you sign in, and neighbours see your name on what you post. Your number or email is never shown.')}</p>
         <div className="chips" role="tablist">
           <button type="button" role="tab" aria-selected={!register} className={!register ? 'chip on' : 'chip'} onClick={() => { setMode('login'); setErr('') }}>{t('Sign in')}</button>
           <button type="button" role="tab" aria-selected={register} className={register ? 'chip on' : 'chip'} onClick={() => { setMode('register'); setErr('') }}>{t('Create account')}</button>
         </div>
-        {register && <label>{t('Your first name (optional)')}<input ref={first} value={name} maxLength={40} autoComplete="given-name" onChange={(e) => setName(e.target.value)} /></label>}
+        {register && <label>{t('Name your neighbours will see')}<input ref={first} value={name} required minLength={2} maxLength={40} autoComplete="given-name" placeholder="Thandi M." onChange={(e) => setName(e.target.value)} /></label>}
         <label>{t('Cell number or email')}<input ref={register ? undefined : first} value={id} inputMode="email" autoComplete="username" required onChange={(e) => setId(e.target.value)} placeholder="082 123 4567" /></label>
         <div className="field">
           <label htmlFor="auth-pw">{t('Password')}</label>
@@ -70,8 +70,8 @@ export default function AuthDialog({ auth }) {
         </div>
         {register && <p className="muted small">{t('At least 8 characters. We keep only a scrambled copy of it, your number or email, and the settings above. Your medical plan stays on your phone.')}</p>}
         {err && <p className="notice" role="alert">{err}</p>}
-        <button className="primary" disabled={busy || !id.trim() || !pw}>{busy ? '…' : register ? t('Create account') : t('Sign in')}</button>
-        <button type="button" className="link" onClick={() => setOpen(false)}>{t('Not now, continue without an account')}</button>
+        <button className="primary" disabled={busy || !id.trim() || !pw || (register && name.trim().length < 2)}>{busy ? '…' : register ? t('Create account') : t('Sign in')}</button>
+        <button type="button" className="link" onClick={() => setOpen(false)}>{t('Not now, just look around')}</button>
       </form>
     </div>
   )
@@ -86,7 +86,7 @@ export function AccountPanel({ auth }) {
   if (!auth.signedIn) {
     return (
       <div className="account">
-        <p className="muted small">{t('Optional: an account keeps your settings and bookings on any phone, and signs you in automatically.')}</p>
+        <p className="muted small">{t('Sign in to report, confirm and offer help. Neighbours see your name on what you post.')}</p>
         <div className="chips">
           <button type="button" className="primary" onClick={() => openAuth('login')}>{t('Sign in')}</button>
           <button type="button" className="ghost" onClick={() => openAuth('register')}>{t('Create account')}</button>

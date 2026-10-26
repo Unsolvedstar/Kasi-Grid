@@ -60,6 +60,14 @@ export async function migrate() {
       /* column already exists */
     }
   }
+  // Community actions are named: who wrote a report, who confirmed it, who is interested in a post.
+  for (const [table, col] of [['reports', 'author TEXT'], ['report_confirms', 'name TEXT'], ['share_interest', 'name TEXT']]) {
+    try {
+      await db.execute(`ALTER TABLE ${table} ADD COLUMN ${col}`)
+    } catch {
+      /* column already exists */
+    }
+  }
   // Reports and posts can carry an exact pin (and the GPS accuracy in metres).
   for (const table of ['reports', 'shares']) {
     for (const col of ['lat REAL', 'lng REAL', 'acc INTEGER']) {

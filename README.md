@@ -21,7 +21,7 @@ Eskom has reported no loadshedding since 16 May 2025 (more than 500 days), but h
 - **A medical power plan.** A live battery countdown for a medical device (corrected by readings from the battery display), alerts at 2 hours, 1 hour, 30 minutes and empty, and a one-tap ambulance call. An emergency card texts your location to a contact without a voice call.
 - **Care and equipment booking**, a **small-business outage cost** planner, **pooled restock orders** for spazas, a **community board** for offers and requests, nearby shops and clinics, and savings calculators.
 - **For everyone.** Accessibility settings for people who are deaf, hard of hearing, blind or have low vision (flash, vibration, large-text and spoken alerts, screen-reader announcements, text size, high contrast, reduced motion), four languages, offline, installable.
-- **Accounts are optional.** Everything works anonymously. An account (cell number or email and a password) keeps your area, language, accessibility settings and care bookings on any phone and signs you in automatically.
+- **Named neighbours, not anonymous.** Anyone can look around; to report, confirm or offer help you sign in (cell number or email and a password) with a name your neighbours will see, and every report, confirmation and offer shows who said it. Your number or email is never shown. The account also keeps your area, language, accessibility settings and care bookings on any phone and signs you in automatically. Deleting the account removes your name from what you posted.
 
 ![The live satellite street](submission/shots/street.png)
 
@@ -48,7 +48,7 @@ Vercel: the front end is static and the API is one serverless function (`api/ind
 ## Tests
 
 ```
-npm test    # 111 tests: calculations, translations, the full API (admin, rate limits, care bookings, accounts), community and location rules, the battery model and alerts. Starts its own server and temporary database
+npm test    # 112 tests: calculations, translations, the full API (admin, rate limits, care bookings, accounts), community and location rules, the battery model and alerts. Starts its own server and temporary database
 ```
 
 ## Outage Pulse
@@ -92,7 +92,7 @@ The production build is a PWA. On a phone, use the browser's "Add to home screen
 - **Frontend:** React + Vite in `src/`. Savings, business inputs, the medical plan and the emergency contact stay in the browser (local storage). Everything shared comes from the API.
 - **Backend:** Express in `server/`. It stores reports, board posts, community places, prices and optional accounts in SQLite (libSQL) at `data/kasi.db`, or a hosted libSQL database (`DATABASE_URL`, or `TURSO_DATABASE_URL`).
 - **Live data:** the server fetches the loadshedding stage from Eskom (cached 5 minutes) and shops and food outlets from OpenStreetMap (cached 24 hours per suburb, with a fallback mirror).
-- **Identity:** anonymous by default. Each browser gets a random device id, which limits confirmations to one per device and lets authors close their own posts. Accounts are optional (`server/auth.js`): a cell number or email and a password stored only as a salted scrypt hash, with a 90-day HttpOnly session cookie so the app opens signed in. An account syncs only area, places, language and accessibility settings, and links care bookings to the person; the medical plan and emergency contact never leave the phone. Accounts can be deleted in the app.
+- **Identity:** named. Community actions need an account, and the stored identity is the account (`u<id>`), so one account confirms an outage once and authors can close their own posts from any phone. The device id is still used for private care bookings and shop baskets. Accounts (`server/auth.js`): a cell number or email and a password stored only as a salted scrypt hash, with a 90-day HttpOnly session cookie so the app opens signed in. An account syncs only area, places, language and accessibility settings, and links care bookings to the person; the medical plan and emergency contact never leave the phone. Accounts can be deleted in the app.
 - **Safety:** input length limits, no links or phone/ID numbers in posts, per-IP rate limits (300 reads and 30 writes a minute), and items are hidden after 3 reports from different devices.
 
 ## Configuration

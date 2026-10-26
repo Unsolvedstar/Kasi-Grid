@@ -13,12 +13,31 @@ const B = 'bbbbbbbb-1111-2222-3333-444444444444'
 let child
 let dir
 
-const call = (p, { device = A, method = 'GET', body } = {}) =>
-  fetch(BASE + p, {
+// Posting needs an account, so each test device signs in as its own named neighbour the first time it is used.
+const jars = new Map()
+const NAMES = { [A]: 'Ada A.', [B]: 'Ben B.' }
+async function cookieFor(device) {
+  if (!device) return ''
+  if (!jars.has(device)) {
+    const n = jars.size + 1
+    const r = await fetch(BASE + '/auth/register', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ id: `user${n}-${PORT}@example.com`, password: 'correct horse battery', name: NAMES[device] || 'Neighbour ' + n }),
+    })
+    jars.set(device, (r.headers.get('set-cookie') || '').split(';')[0])
+  }
+  return jars.get(device)
+}
+const call = async (p, { device = A, method = 'GET', body } = {}) => {
+  const cookie = await cookieFor(device)
+  const r = await fetch(BASE + p, {
     method,
-    headers: { ...(device ? { 'x-device-id': device } : {}), ...(body ? { 'content-type': 'application/json' } : {}) },
+    headers: { ...(device ? { 'x-device-id': device } : {}), ...(cookie ? { cookie } : {}), ...(body ? { 'content-type': 'application/json' } : {}) },
     body: body ? JSON.stringify(body) : undefined,
-  }).then(async (r) => ({ status: r.status, body: await r.json().catch(() => null) }))
+  })
+  return { status: r.status, body: await r.json().catch(() => null) }
+}
 
 before(async () => {
   dir = mkdtempSync(path.join(tmpdir(), 'kasi-'))
@@ -74,7 +93,7 @@ test('rejects invalid and unsafe input', async () => {
   assert.equal((await post({ suburb: 'nowhere', type: 'water', text: 'x' })).status, 400)
   assert.equal((await post({ suburb: 'alex', type: 'bogus', text: 'x' })).status, 400)
   assert.equal((await post({ suburb: 'alex', type: 'water', text: 'x'.repeat(281) })).status, 400)
-  assert.equal((await post({ suburb: 'alex', type: 'water', text: 'no device' }, null)).status, 400)
+  assert.equal((await post({ suburb: 'alex', type: 'water', text: 'not signed in' }, null)).status, 401)
 })
 
 test('board: only the author can close a post, interest counts once per device', async () => {
@@ -187,7 +206,7 @@ test('admin: disabled in production when no ADMIN_TOKEN is set', async () => {
 test('write rate limit returns 429 once exceeded', async () => {
   const port = PORT + 600
   const d3 = mkdtempSync(path.join(tmpdir(), 'kasi3-'))
-  const env = { ...process.env, PORT: String(port), WRITE_LIMIT: '3', DATABASE_URL: 'file:' + path.join(d3, 't.db').replaceAll('\\', '/') }
+  const env = { ...process.env, PORT: String(port), WRITE_LIMIT: '4', DATABASE_URL: 'file:' + path.join(d3, 't.db').replaceAll('\\', '/') }
   const c3 = spawn(process.execPath, ['server/index.js'], { env, stdio: 'ignore' })
   try {
     let up = false
@@ -196,11 +215,14 @@ test('write rate limit returns 429 once exceeded', async () => {
       if (!up) await new Promise((r) => setTimeout(r, 200))
     }
     assert.ok(up)
+    // signing up is itself a write, so it uses the first of the four allowed
+    const reg = await fetch(`http://localhost:${port}/api/auth/register`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ id: 'rate@example.com', password: 'correct horse battery', name: 'Rate R.' }) })
+    const cookie = reg.headers.get('set-cookie').split(';')[0]
     const codes = []
     for (let i = 0; i < 5; i++) {
       const r = await fetch(`http://localhost:${port}/api/reports`, {
         method: 'POST',
-        headers: { 'content-type': 'application/json', 'x-device-id': A },
+        headers: { 'content-type': 'application/json', 'x-device-id': A, cookie },
         body: JSON.stringify({ suburb: 'alex', type: 'other', text: 'rate limit probe' }),
       })
       codes.push(r.status)

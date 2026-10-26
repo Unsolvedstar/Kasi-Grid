@@ -75,24 +75,24 @@ test('register, stay signed in through the cookie, and sign out', async () => {
 
 test('wrong passwords, unknown accounts, duplicates and weak passwords are refused', async () => {
   const call = jar()
-  assert.equal((await call('/auth/register', { method: 'POST', body: { id: 'sipho@example.com', password: 'short' } })).status, 400)
-  assert.equal((await call('/auth/register', { method: 'POST', body: { id: 'nope', password: 'long enough password' } })).status, 400)
-  assert.equal((await call('/auth/register', { method: 'POST', body: { id: 'sipho@example.com', password: 'long enough password' } })).status, 201)
-  assert.equal((await jar()('/auth/register', { method: 'POST', body: { id: 'SIPHO@example.com', password: 'another password' } })).status, 409, 'same email in any case')
+  assert.equal((await call('/auth/register', { method: 'POST', body: { name: 'Sipho S.', id: 'sipho@example.com', password: 'short' } })).status, 400)
+  assert.equal((await call('/auth/register', { method: 'POST', body: { name: 'Nope N.', id: 'nope', password: 'long enough password' } })).status, 400)
+  assert.equal((await call('/auth/register', { method: 'POST', body: { name: 'Test T.', id: 'sipho@example.com', password: 'long enough password' } })).status, 201)
+  assert.equal((await jar()('/auth/register', { method: 'POST', body: { name: 'Test T.', id: 'SIPHO@example.com', password: 'another password' } })).status, 409, 'same email in any case')
   const fresh = jar()
-  assert.equal((await fresh('/auth/login', { method: 'POST', body: { id: 'sipho@example.com', password: 'wrong password here' } })).status, 401)
-  assert.equal((await fresh('/auth/login', { method: 'POST', body: { id: 'nobody@example.com', password: 'wrong password here' } })).status, 401)
-  const ok = await fresh('/auth/login', { method: 'POST', body: { id: 'sipho@example.com', password: 'long enough password' } })
+  assert.equal((await fresh('/auth/login', { method: 'POST', body: { name: 'Test T.', id: 'sipho@example.com', password: 'wrong password here' } })).status, 401)
+  assert.equal((await fresh('/auth/login', { method: 'POST', body: { name: 'Test T.', id: 'nobody@example.com', password: 'wrong password here' } })).status, 401)
+  const ok = await fresh('/auth/login', { method: 'POST', body: { name: 'Test T.', id: 'sipho@example.com', password: 'long enough password' } })
   assert.equal(ok.status, 200)
   assert.equal((await fresh('/auth/me')).body.user.handle, 's***@example.com')
 })
 
 test('settings sync across phones, and are sanitised', async () => {
   const phone1 = jar()
-  await phone1('/auth/register', { method: 'POST', body: { id: '0831112222', password: 'a good long password' } })
+  await phone1('/auth/register', { method: 'POST', body: { name: 'Test T.', id: '0831112222', password: 'a good long password' } })
   assert.equal((await phone1('/auth/prefs', { method: 'PUT', body: { prefs: { suburb: 'soweto', lang: 'st', places: { 'not-a-place': 'x', alex: 'Home' }, medplan: { watts: 300 } } } })).status, 200)
   const phone2 = jar()
-  await phone2('/auth/login', { device: PHONE_B, method: 'POST', body: { id: '+27 83 111 2222', password: 'a good long password' } })
+  await phone2('/auth/login', { device: PHONE_B, method: 'POST', body: { name: 'Test T.', id: '+27 83 111 2222', password: 'a good long password' } })
   const me = (await phone2('/auth/me', { device: PHONE_B })).body.user
   assert.equal(me.prefs.suburb, 'soweto')
   assert.equal(me.prefs.lang, 'st')
@@ -103,13 +103,13 @@ test('settings sync across phones, and are sanitised', async () => {
 
 test('care bookings follow a signed-in person to another phone', async () => {
   const phone1 = jar()
-  await phone1('/auth/register', { method: 'POST', body: { id: 'gogo@example.com', password: 'a good long password' } })
+  await phone1('/auth/register', { method: 'POST', body: { name: 'Test T.', id: 'gogo@example.com', password: 'a good long password' } })
   const when = Date.now() + 26 * 3600e3
   const booked = await phone1('/care/bookings', { method: 'POST', body: { suburb: 'alex', service: 'companion', hours: 4, equipment: [], start: when, patient: 'Gogo', landmark: 'Opposite the clinic', needs: '' } })
   assert.equal(booked.status, 201)
   const phone2 = jar()
   assert.equal((await phone2('/care/bookings', { device: PHONE_B })).body.bookings.length, 0, 'another phone sees nothing while signed out')
-  await phone2('/auth/login', { device: PHONE_B, method: 'POST', body: { id: 'gogo@example.com', password: 'a good long password' } })
+  await phone2('/auth/login', { device: PHONE_B, method: 'POST', body: { name: 'Test T.', id: 'gogo@example.com', password: 'a good long password' } })
   const seen = (await phone2('/care/bookings', { device: PHONE_B })).body.bookings
   assert.equal(seen.length, 1)
   assert.equal((await phone2(`/care/bookings/${seen[0].id}/cancel`, { device: PHONE_B, method: 'POST' })).status, 200, 'and can cancel it')
@@ -117,9 +117,30 @@ test('care bookings follow a signed-in person to another phone', async () => {
 
 test('deleting the account ends every session and unlinks bookings', async () => {
   const phone = jar()
-  await phone('/auth/register', { method: 'POST', body: { id: 'bye@example.com', password: 'a good long password' } })
+  await phone('/auth/register', { method: 'POST', body: { name: 'Test T.', id: 'bye@example.com', password: 'a good long password' } })
   assert.equal((await phone('/auth/delete', { method: 'POST', body: { password: 'not the password' } })).status, 401)
   assert.equal((await phone('/auth/delete', { method: 'POST', body: { password: 'a good long password' } })).status, 200)
   assert.equal((await phone('/auth/me')).body.user, null)
   assert.equal((await jar()('/auth/login', { method: 'POST', body: { id: 'bye@example.com', password: 'a good long password' } })).status, 401, 'the account is gone')
+})
+
+test('a name is required and posts show who wrote them; deleting an account removes the name', async () => {
+  const call = jar()
+  assert.equal((await call('/auth/register', { method: 'POST', body: { id: 'noname@example.com', password: 'a good long password' } })).status, 400, 'a name is required')
+  assert.equal((await call('/auth/register', { method: 'POST', body: { name: '0821234567', id: 'phone@example.com', password: 'a good long password' } })).status, 400, 'a number is not a name')
+  assert.equal((await call('/reports', { method: 'POST', body: { suburb: 'alex', type: 'water', text: 'before signing in' } })).status, 401, 'posting needs an account')
+  assert.equal((await call('/auth/register', { method: 'POST', body: { name: 'Naledi M.', id: 'naledi@example.com', password: 'a good long password' } })).status, 201)
+  const made = await call('/reports', { method: 'POST', body: { suburb: 'alex', type: 'water', text: 'No water on our street' } })
+  assert.equal(made.status, 201)
+  const other = jar()
+  await other('/auth/register', { method: 'POST', body: { name: 'Zola K.', id: 'zola@example.com', password: 'a good long password' } })
+  await other(`/reports/${made.body.id}/confirm`, { method: 'POST' })
+  const seen = (await call('/reports')).body.reports.find((r) => r.id === made.body.id)
+  assert.equal(seen.author, 'Naledi M.')
+  assert.deepEqual(seen.confirmedBy, ['Zola K.'])
+  const share = await call('/shares', { method: 'POST', body: { kind: 'offer', category: 'power', suburb: 'alex', title: 'Charging', name: 'Someone Else' } })
+  assert.equal((await call('/shares')).body.shares.find((s) => s.id === share.body.id).name, 'Naledi M.', 'the name comes from the account, not the form')
+  assert.equal((await call('/auth/delete', { method: 'POST', body: { password: 'a good long password' } })).status, 200)
+  const after = (await other('/reports')).body.reports.find((r) => r.id === made.body.id)
+  assert.equal(after.author, 'A former neighbour')
 })

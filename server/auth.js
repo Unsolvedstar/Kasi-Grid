@@ -3,8 +3,9 @@ import { promisify } from 'node:util'
 import rateLimit from 'express-rate-limit'
 import { isSuburbId } from '../shared/suburbs.js'
 
-// Optional accounts. Residents never need one: reporting, alerts and the medical plan work anonymously. An account adds two
-// things: your area, places, language and accessibility settings follow you to any phone, and care bookings follow you too.
+// Accounts. Looking around and the medical plan need none, but reporting, confirming and offering help do: neighbours see the
+// name on each post, and the account is the identity behind it. The account also carries your area, places, language and
+// accessibility settings to any phone, and your care bookings.
 // Passwords are stored only as salted scrypt hashes. A session is a random token kept in an HttpOnly cookie for 90 days, so
 // once someone has signed in the app opens already signed in. Only a hash of the token is stored on the server.
 const scryptAsync = promisify(scrypt)
@@ -91,6 +92,8 @@ export function mountAuth(api, { db, wrap, bad, HttpError }) {
     const pw = typeof b.password === 'string' ? b.password : ''
     if (pw.length < 8 || pw.length > 100) throw bad('Choose a password of at least 8 characters')
     const name = typeof b.name === 'string' ? b.name.trim().replace(/\s+/g, ' ').slice(0, 40) : ''
+    if (name.length < 2) throw bad('Enter the name your neighbours will see, for example Thandi M.')
+    if (/\d[\d\s-]{6,}/.test(name) || name.includes('@')) throw bad('Use a name, not a phone number or email')
     if (/https?:\/\/|www\./i.test(name)) throw bad('Links are not allowed')
     if ((await db.execute({ sql: 'SELECT 1 FROM users WHERE handle = ?', args: [id.handle] })).rows.length) throw new HttpError(409, 'There is already an account with that number or email. Try signing in.')
     const prefs = JSON.stringify(cleanPrefs(b.prefs)) // the settings on this phone become the account's starting point
@@ -137,7 +140,14 @@ export function mountAuth(api, { db, wrap, bad, HttpError }) {
     const u = await userOf(db, req)
     if (!u) throw new HttpError(401, 'Sign in first')
     if (!(await checkPassword(typeof (req.body || {}).password === 'string' ? req.body.password.slice(0, 100) : '', u.pw))) throw new HttpError(401, 'That password is not right')
+    const who = 'u' + u.id
     await db.batch([
+      // What you said stays useful to the street, but is no longer tied to your name.
+      { sql: "UPDATE reports SET author = 'A former neighbour', owner = NULL WHERE owner = ?", args: [who] },
+      { sql: "UPDATE shares SET name = 'A former neighbour', owner = NULL WHERE owner = ?", args: [who] },
+      { sql: 'UPDATE report_confirms SET name = NULL WHERE device = ?', args: [who] },
+      { sql: 'UPDATE share_interest SET name = NULL WHERE device = ?', args: [who] },
+      { sql: 'UPDATE places SET owner = NULL WHERE owner = ?', args: [who] },
       { sql: 'UPDATE care_bookings SET user = NULL WHERE user = ?', args: [u.id] },
       { sql: 'DELETE FROM sessions WHERE user = ?', args: [u.id] },
       { sql: 'DELETE FROM users WHERE id = ?', args: [u.id] },

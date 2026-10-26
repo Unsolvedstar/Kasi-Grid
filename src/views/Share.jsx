@@ -7,8 +7,9 @@ import { SHARE_CATEGORIES } from '../data.js'
 import { findSuburb } from '../../shared/suburbs.js'
 import PinPicker from '../components/PinPicker.jsx'
 import { timeAgo, waLink } from '../lib.js'
+import { shownName } from '../auth.js'
 
-const EMPTY = { kind: 'offer', category: 'power', title: '', detail: '', name: '' }
+const EMPTY = { kind: 'offer', category: 'power', title: '', detail: '' }
 
 const OFFERS = ['Phone charging', 'Boiled water', 'A lift to the clinic', 'Fridge space for medicine']
 const ASKS = ['Need phone charging', 'Need drinking water', 'Need a lift to the clinic', 'Need cold storage for medicine']
@@ -85,9 +86,7 @@ export default function Share({ suburb, shares, actions }) {
               id: 'who', title: t('You and where'), valid: true,
               content: (
                 <>
-                  <label>{t('Your first name')}
-                    <input value={form.name} maxLength={30} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder={t('Optional')} />
-                  </label>
+                  <p className="muted small">{t('Posting as {name}. Neighbours see your name.', { name: shownName() || t('your account name') })}</p>
                   <PinPicker suburb={suburb} value={pin} onChange={setPin} />
                   <p className="muted small">{t('Neighbours see your pin only to about 100 metres, so your home is not given away.')}</p>
                 </>
@@ -122,7 +121,8 @@ export default function Share({ suburb, shares, actions }) {
                 </p>
                 {s.detail && <p>{s.detail}</p>}
                 <p className="muted small">
-                  {s.name} · {findSuburb(s.suburb)?.name} · {timeAgo(s.ts, t)} · {t('{n} interested', { n: s.interested })}
+                  <strong>{s.mine ? t('You') : s.name}</strong> · {findSuburb(s.suburb)?.name} · {timeAgo(s.ts, t)} · {t('{n} interested', { n: s.interested })}
+                  {s.interestedBy?.length > 0 && <span> ({s.interestedBy.slice(0, 4).join(', ')}{s.interestedBy.length > 4 ? ' +' + (s.interestedBy.length - 4) : ''})</span>}
                   {' · '}<a href={waLink(`${s.kind === 'offer' ? 'Offer' : 'Request'} on Kasi Grid (${findSuburb(s.suburb)?.name}): ${s.title}. ${window.location.origin}`)} target="_blank" rel="noreferrer">{t('Share')}</a>
                   {!s.mine && <> · <button className="link" onClick={() => run(actions.flag('shares', s.id))}>{t('Report')}</button></>}
                 </p>

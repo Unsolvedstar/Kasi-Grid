@@ -95,4 +95,5 @@ export function useAuth() {
   return { ...state, login, register, logout, remove, signedIn: state.status === 'in' || state.status === 'offline' }
 }
 
+export const shownName = () => readJson(SHOWN)?.name || ''
 export const openAuth = (mode = 'login') => window.dispatchEvent(new CustomEvent('kg-auth', { detail: { mode } }))

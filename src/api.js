@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 
-// Anonymous per-device id. It lets the server allow one confirmation per device and lets authors close their own posts.
+// Per-device id for private things (bookings, baskets, flags). Posts and confirmations use the signed-in account.
 function deviceId() {
   try {
     let id = localStorage.getItem('kg2.device')
@@ -32,7 +32,12 @@ export async function api(path, { method = 'GET', body } = {}) {
   } catch {
     /* non-JSON error page */
   }
-  if (!r.ok) throw new Error(data?.error || `Request failed (${r.status})`)
+  if (!r.ok) {
+    // Community actions are named, so a refused one opens the sign-in dialog instead of just showing an error.
+    const needsAccount = r.status === 401 && !path.startsWith('/auth')
+    if (needsAccount) window.dispatchEvent(new CustomEvent('kg-auth', { detail: { mode: 'login' } }))
+    throw Object.assign(new Error(data?.error || `Request failed (${r.status})`), needsAccount ? { auth: true } : {})
+  }
   return data
 }
 
@@ -76,7 +81,7 @@ export function useCommunity() {
         try {
           await api(q[0].path, { method: 'POST', body: q[0].body })
         } catch (e) {
-          if (e.offline || /Too many/i.test(e.message)) break
+          if (e.offline || e.auth || /Too many/i.test(e.message)) break // keep the post until the person has signed in
         }
         q = q.slice(1)
         writeQueue(q)

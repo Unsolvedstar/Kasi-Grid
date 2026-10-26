@@ -78,7 +78,7 @@ T(s, 'Most apps ask you to look at a screen alone. Kasi Grid only works when nei
   ['Neighbours make it true', '3 different neighbours must agree before an outage is verified. Then they vote "back on for me" to close it.'],
   ['Help travels door to door', 'A neighbour with a generator, gas stove or charger shows as a gold light on the street, with a thread to the nearest dark home.'],
   ['Shops grow together', 'Spazas order stock as one group for lower prices and see what an outage costs them.'],
-  ['No one is left out', 'Anonymous, offline, four languages, and usable if you are deaf or blind, so the person who needs the community most is not forgotten.'],
+  ['No one is left out', 'Offline, four languages, and usable if you are deaf or blind, so the person who needs the community most is not forgotten.'],
 ].forEach(([h, b], i) => card(s, 0.5 + (i % 2) * 3.3, 1.95 + Math.floor(i / 2) * 1.5, 3.15, 1.4, h, b, i % 3 ? 'EAF3FE' : LT, i % 3 ? AZ : AM))
 pic(s, 'share', 7.3, 1.05, { h: 3.9 })
 note(s, 'In a blackout people learn what is happening from rumours in a group chat. We want them to learn it from each other.')
@@ -87,7 +87,7 @@ note(s, 'In a blackout people learn what is happening from rumours in a group ch
 s = base('Kasi Grid in one slide')
 ;[
   ['Live satellite street', 'Every home is a glowing dot. Drag through the next 48 hours and watch the street dim and relight.'],
-  ['Verified by neighbours', '3 different devices must agree before an outage is verified. Anonymous. Anywhere in South Africa.'],
+  ['Verified by neighbours', '3 different neighbours must agree, and everyone can see who said what. Anywhere in South Africa.'],
   ['Thinks ahead', 'Learns when outages cluster and how long they last. Says "expected back around 09:30".'],
   ['When minutes matter', 'Live battery countdown for medical devices, staged alerts, a one-tap ambulance call.'],
   ['Money and help', 'What an outage costs a shop, pooled restock orders, a board for neighbours to help each other.'],
@@ -105,7 +105,7 @@ bullets(s, ['Real satellite imagery; every mapped home is a dot. 40% outage risk
 s = base('Neighbours make it real: verified, local, on a map')
 pic(s, 'today', 0.5, 1.1, { h: 3.95 })
 pic(s, 'map', 3.0, 1.1, { w: 3.1 })
-bullets(s, ['3 or more different devices report the same problem and it becomes a verified outage', 'The map shows every community: red verified, green back on, grey quiet', 'Neighbours vote "back on for me" and the alert closes itself', 'Anonymous by default: no account needed. One vote per device'], { x: 6.4, y: 1.2, w: 3.2, h: 3.7, fontSize: 14 })
+bullets(s, ['3 or more different neighbours report the same problem and it becomes a verified outage', 'The map shows every community: red verified, green back on, grey quiet', 'Neighbours vote "back on for me" and the alert closes itself', 'Anonymous by default: no account needed. One vote per device'], { x: 6.4, y: 1.2, w: 3.2, h: 3.7, fontSize: 14 })
 
 // 6 Intelligence
 s = base('It thinks ahead: when, and for how long', true)
@@ -164,8 +164,8 @@ box(7.1, 1.2, 2.4, 1.15, 'Database', 'Hosted libSQL (Turso)', AM)
 box(0.5, 2.55, 2.4, 0.95, 'Eskom + EskomSePush', 'Stage and official slots', LT, INK)
 box(3.8, 2.55, 2.4, 0.95, 'OpenStreetMap + Esri', 'Homes, shops, clinics, satellite imagery', LT, INK)
 box(7.1, 2.55, 2.4, 0.95, 'Open-Meteo + NAMC', 'Weather, food prices', LT, INK)
-card(s, 0.5, 3.7, 4.4, 1.3, 'Privacy', 'No account needed; an optional one is hashed and deletable. Location is optional. Board posts only to about 100 m. The medical plan stays on the phone.')
-card(s, 5.1, 3.7, 4.4, 1.3, 'Safety', '111 automated tests. Production dependency scan: 0 vulnerabilities. Parameterised SQL, input limits, rate limits, token-protected admin.', 'EAF3FE', AZ)
+card(s, 0.5, 3.7, 4.4, 1.3, 'Privacy', 'Neighbours see your name, never your number or email. Passwords are hashed; deleting your account removes your name. Location is optional. Board posts only to about 100 m. The medical plan stays on the phone.')
+card(s, 5.1, 3.7, 4.4, 1.3, 'Safety', '112 automated tests. Production dependency scan: 0 vulnerabilities. Parameterised SQL, input limits, rate limits, token-protected admin.', 'EAF3FE', AZ)
 
 // 14 Business model
 s = base('Who pays, and why', true)
@@ -178,7 +178,7 @@ T(s, 'Estimates and hypotheses to validate in the pilot, not measured results.',
 
 // 15 What we built and tested
 s = base('Built, tested, ready to pilot')
-;[['111', 'automated tests passing'], ['0', 'known vulnerabilities in production dependencies'], ['4', 'languages, offline-capable'], ['0', 'accounts required to use it']].forEach(([n, l], i) => {
+;[['112', 'automated tests passing'], ['0', 'known vulnerabilities in production dependencies'], ['4', 'languages, offline-capable'], ['0', 'accounts required to use it']].forEach(([n, l], i) => {
   const x = 0.5 + i * 2.3
   T(s, n, { x, y: 1.25, w: 2.1, h: 0.9, fontFace: H, fontSize: 40, bold: true, color: i % 2 ? AZ : AM })
   T(s, l, { x, y: 2.15, w: 2.1, h: 0.75, fontSize: 13, color: INK, valign: 'top' })

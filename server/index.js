@@ -46,7 +46,7 @@ class HttpError extends Error {
 }
 const bad = (msg) => new HttpError(400, msg)
 
-// Anonymous per-device identity: enough to allow one confirmation per device and to let authors close their own posts.
+// Per-device id, used for private things (care bookings, shop baskets, flags). Community posts use the signed-in account instead.
 const deviceOf = (req) => {
   const id = req.get('x-device-id') || ''
   return /^[a-zA-Z0-9-]{16,64}$/.test(id) ? id : null
@@ -56,6 +56,19 @@ const needDevice = (req) => {
   if (!d) throw bad('Missing device id')
   return d
 }
+
+// Community actions are named: you need an account, and neighbours see your name on what you post, confirm or ask for.
+// The identity stored is "u<account id>", so it follows you to any phone and one account can confirm an outage only once.
+async function needUser(req) {
+  const u = await userOf(db, req)
+  if (!u) throw new HttpError(401, 'Sign in to take part. Neighbours see who said what.')
+  return { id: 'u' + u.id, name: String(u.name || '').trim() || 'A neighbour' }
+}
+const idOf = async (req) => {
+  const u = await userOf(db, req)
+  return u ? 'u' + u.id : ''
+}
+const namesOf = (csv) => (csv ? String(csv).split('\u0001').filter(Boolean) : [])
 
 function text(v, field, max, { required = true } = {}) {
   const s = typeof v === 'string' ? v.trim().replace(/\s+/g, ' ') : ''
@@ -187,15 +200,16 @@ const pinOf = (b, suburb) => {
 
 // ---- reports
 const mapReport = (r) => ({
-  id: Number(r.id), suburb: r.suburb, type: r.type, text: r.text, ts: Number(r.ts), confirms: Number(r.confirms),
+  id: Number(r.id), suburb: r.suburb, type: r.type, text: r.text, ts: Number(r.ts), confirms: Number(r.confirms), author: r.author || null, confirmedBy: namesOf(r.cnames),
   sample: !!r.sample, mine: !!r.mine, confirmedByMe: !!r.cby, lat: r.lat == null ? null : Number(r.lat), lng: r.lng == null ? null : Number(r.lng),
 })
 
 api.get('/reports', wrap(async (req, res) => {
-  const d = deviceOf(req) || ''
+  const d = await idOf(req)
   const rs = await db.execute({
     sql: `SELECT r.*, (r.owner = ?1) AS mine,
-            EXISTS(SELECT 1 FROM report_confirms c WHERE c.report_id = r.id AND c.device = ?1) AS cby
+            EXISTS(SELECT 1 FROM report_confirms c WHERE c.report_id = r.id AND c.device = ?1) AS cby,
+            (SELECT group_concat(c.name, char(1)) FROM report_confirms c WHERE c.report_id = r.id AND c.name IS NOT NULL AND c.device <> COALESCE(r.owner, '')) AS cnames
           FROM reports r WHERE r.hidden = 0 AND (r.sample = 1 OR r.ts > ?2) ORDER BY r.ts DESC LIMIT 300`,
     args: [d, Date.now() - WEEK],
   })
@@ -203,23 +217,25 @@ api.get('/reports', wrap(async (req, res) => {
 }))
 
 api.post('/reports', wrap(async (req, res) => {
-  const d = needDevice(req)
+  const me = await needUser(req)
+  const d = me.id
   const b = req.body || {}
   const suburb = oneOf(b.suburb, SUBURB_IDS, 'suburb')
   const type = oneOf(b.type, REPORT_TYPES, 'type')
   const body = text(b.text, 'Description', 280)
   const pin = pinOf(b, suburb)
-  const ins = await db.execute({ sql: 'INSERT INTO reports (suburb,type,text,ts,confirms,owner,lat,lng,acc) VALUES (?,?,?,?,1,?,?,?,?)', args: [suburb, type, body, Date.now(), d, pin.lat, pin.lng, pin.acc] })
-  await db.execute({ sql: 'INSERT OR IGNORE INTO report_confirms (report_id, device) VALUES (?,?)', args: [Number(ins.lastInsertRowid), d] })
+  const ins = await db.execute({ sql: 'INSERT INTO reports (suburb,type,text,ts,confirms,owner,author,lat,lng,acc) VALUES (?,?,?,?,1,?,?,?,?,?)', args: [suburb, type, body, Date.now(), d, me.name, pin.lat, pin.lng, pin.acc] })
+  await db.execute({ sql: 'INSERT OR IGNORE INTO report_confirms (report_id, device, name) VALUES (?,?,?)', args: [Number(ins.lastInsertRowid), d, me.name] })
   res.status(201).json({ id: Number(ins.lastInsertRowid) })
 }))
 
 api.post('/reports/:id/confirm', wrap(async (req, res) => {
-  const d = needDevice(req)
+  const me = await needUser(req)
+  const d = me.id
   const id = Number(req.params.id)
   const ex = await db.execute({ sql: 'SELECT 1 FROM reports WHERE id = ? AND hidden = 0', args: [id] })
   if (!ex.rows.length) throw new HttpError(404, 'Report not found')
-  const ins = await db.execute({ sql: 'INSERT OR IGNORE INTO report_confirms (report_id, device) VALUES (?,?)', args: [id, d] })
+  const ins = await db.execute({ sql: 'INSERT OR IGNORE INTO report_confirms (report_id, device, name) VALUES (?,?,?)', args: [id, d, me.name] })
   if (ins.rowsAffected) await db.execute({ sql: 'UPDATE reports SET confirms = confirms + 1 WHERE id = ?', args: [id] })
   res.json({ ok: true })
 }))
@@ -244,7 +260,7 @@ api.get('/pulse', wrap(async (req, res) => {
     g.reports.set(Number(r.id), { ts: Number(r.ts), back: Number(r.back) })
     groups.set(r.suburb + '|' + r.type, g)
   }
-  const d = deviceOf(req) || ''
+  const d = await idOf(req)
   const mine = d ? new Set((await db.execute({ sql: 'SELECT report_id FROM report_restored WHERE device = ?', args: [d] })).rows.map((x) => Number(x.report_id))) : new Set()
   const incidents = []
   for (const g of groups.values()) {
@@ -263,7 +279,7 @@ api.get('/pulse', wrap(async (req, res) => {
 }))
 
 api.post('/reports/:id/restored', wrap(async (req, res) => {
-  const d = needDevice(req)
+  const d = (await needUser(req)).id
   const id = Number(req.params.id)
   const ex = await db.execute({ sql: 'SELECT 1 FROM reports WHERE id = ? AND hidden = 0', args: [id] })
   if (!ex.rows.length) throw new HttpError(404, 'Report not found')
@@ -315,15 +331,16 @@ api.get('/stats', wrap(async (req, res) => {
 // ---- community board
 const mapShare = (s) => ({
   id: Number(s.id), kind: s.kind, category: s.category, suburb: s.suburb, title: s.title, detail: s.detail, name: s.name,
-  ts: Number(s.ts), interested: Number(s.interested), sample: !!s.sample, mine: !!s.mine, interestedByMe: !!s.iby,
+  ts: Number(s.ts), interested: Number(s.interested), interestedBy: namesOf(s.inames), sample: !!s.sample, mine: !!s.mine, interestedByMe: !!s.iby,
   lat: s.lat == null ? null : Math.round(Number(s.lat) * 1e3) / 1e3, lng: s.lng == null ? null : Math.round(Number(s.lng) * 1e3) / 1e3,
 })
 
 api.get('/shares', wrap(async (req, res) => {
-  const d = deviceOf(req) || ''
+  const d = await idOf(req)
   const rs = await db.execute({
     sql: `SELECT s.*, (s.owner = ?1) AS mine,
-            EXISTS(SELECT 1 FROM share_interest i WHERE i.share_id = s.id AND i.device = ?1) AS iby
+            EXISTS(SELECT 1 FROM share_interest i WHERE i.share_id = s.id AND i.device = ?1) AS iby,
+            (SELECT group_concat(i.name, char(1)) FROM share_interest i WHERE i.share_id = s.id AND i.name IS NOT NULL) AS inames
           FROM shares s WHERE s.hidden = 0 AND s.done = 0 ORDER BY s.ts DESC LIMIT 300`,
     args: [d],
   })
@@ -331,14 +348,15 @@ api.get('/shares', wrap(async (req, res) => {
 }))
 
 api.post('/shares', wrap(async (req, res) => {
-  const d = needDevice(req)
+  const me = await needUser(req)
+  const d = me.id
   const b = req.body || {}
   const kind = oneOf(b.kind, ['offer', 'request'], 'kind')
   const category = oneOf(b.category, SHARE_CATEGORIES, 'category')
   const suburb = oneOf(b.suburb, SUBURB_IDS, 'suburb')
   const title = text(b.title, 'Title', 100)
   const detail = text(b.detail, 'Details', 400, { required: false })
-  const name = text(b.name, 'Name', 30, { required: false }) || 'A neighbour'
+  const name = me.name
   const pin = pinOf(b, suburb)
   const ins = await db.execute({
     sql: 'INSERT INTO shares (kind,category,suburb,title,detail,name,ts,owner,lat,lng,acc) VALUES (?,?,?,?,?,?,?,?,?,?,?)',
@@ -348,17 +366,18 @@ api.post('/shares', wrap(async (req, res) => {
 }))
 
 api.post('/shares/:id/interest', wrap(async (req, res) => {
-  const d = needDevice(req)
+  const me = await needUser(req)
+  const d = me.id
   const id = Number(req.params.id)
   const ex = await db.execute({ sql: 'SELECT 1 FROM shares WHERE id = ? AND hidden = 0 AND done = 0', args: [id] })
   if (!ex.rows.length) throw new HttpError(404, 'Post not found')
-  const ins = await db.execute({ sql: 'INSERT OR IGNORE INTO share_interest (share_id, device) VALUES (?,?)', args: [id, d] })
+  const ins = await db.execute({ sql: 'INSERT OR IGNORE INTO share_interest (share_id, device, name) VALUES (?,?,?)', args: [id, d, me.name] })
   if (ins.rowsAffected) await db.execute({ sql: 'UPDATE shares SET interested = interested + 1 WHERE id = ?', args: [id] })
   res.json({ ok: true })
 }))
 
 api.post('/shares/:id/done', wrap(async (req, res) => {
-  const d = needDevice(req)
+  const d = (await needUser(req)).id
   const r = await db.execute({ sql: 'UPDATE shares SET done = 1 WHERE id = ? AND owner = ?', args: [Number(req.params.id), d] })
   if (!r.rowsAffected) throw new HttpError(403, 'Only the person who posted this can close it')
   res.json({ ok: true })
@@ -375,7 +394,7 @@ api.get('/places', wrap(async (req, res) => {
 }))
 
 api.post('/places', wrap(async (req, res) => {
-  const d = needDevice(req)
+  const d = (await needUser(req)).id
   const b = req.body || {}
   const lat = Number(b.lat)
   const lng = Number(b.lng)
@@ -400,7 +419,7 @@ api.get('/prices', wrap(async (req, res) => {
 }))
 
 api.post('/prices', wrap(async (req, res) => {
-  const d = needDevice(req)
+  const d = (await needUser(req)).id
   const b = req.body || {}
   const placeId = String(b.placeId || '')
   if (!/^(osm-(node|way|relation)-\d{1,15}|c\d{1,9})$/.test(placeId)) throw bad('Invalid place')

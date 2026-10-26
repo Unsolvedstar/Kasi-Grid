@@ -33,11 +33,11 @@ export const overview = [
   {
     id: 'solution', title: 'Solution and features',
     blocks: [
-      { p: 'Kasi Grid is a free web app that works anonymously (an account is optional), installs on a phone and keeps working offline. It turns neighbours\' reports into verified outage alerts for power and water, learns when and how long outages happen, and connects an outage to action: a medical battery countdown, an ambulance call, help from neighbours and what an outage costs a shop. It works for any place in South Africa.' },
+      { p: 'Kasi Grid is a free web app that is named, not anonymous (you look around freely, and sign in to take part so neighbours see who said what), installs on a phone and keeps working offline. It turns neighbours\' reports into verified outage alerts for power and water, learns when and how long outages happen, and connects an outage to action: a medical battery countdown, an ambulance call, help from neighbours and what an outage costs a shop. It works for any place in South Africa.' },
       { ul: [
         '**A live satellite street.** The home screen is a real satellite view of the community with every mapped home as a glowing dot. Homes go dark as the risk of a power cut rises. Drag a slider through the next 48 hours and watch the street dim and relight. Tap a home for its status.',
-        '**Verified outages.** Three or more different devices reporting the same problem make a verified outage on the map. Neighbours vote "back on for me" and the alert closes itself. Reports are anonymous.',
-        '**No account needed, and one if you want it.** Everything works anonymously. An optional free account (cell number or email and a password) keeps your area, language, accessibility settings and bookings on any phone, and signs you in automatically every time the app opens.',
+        '**Verified outages.** Three or more different neighbours (three separate accounts) reporting the same problem make a verified outage on the map, and each report shows who made it and who confirmed it. Neighbours vote "back on for me" and the alert closes itself.',
+        '**Real neighbours, real names.** Anyone can look around, the medical battery countdown works with no account, and to report, confirm or offer help you sign in with a free account (cell number or email and a password) and a name your neighbours will see, for example Thandi M. Every report, confirmation and offer shows who said it, so trust is built between people and not hidden behind a screen. Your number or email is never shown. The account also keeps your area, language, accessibility settings and bookings on any phone and signs you in automatically.',
         '**Anywhere in South Africa.** Every place is a community of about 2 km. Find any town, suburb or street, or use your location. Reports and posts can carry an exact pin; neighbours see board posts only to about 100 m so no home is given away.',
         '**Early warning.** The app learns each community\'s own pattern (which weekday and time outages cluster) and how long they last, shows "expected back around 16:30", and says when it does not have enough data.',
         '**Medical power plan.** A household enters its device and battery; the plan counts the real hours, tracks them live against the time on battery (and against readings from the battery display), alerts at 2 hours, 1 hour, 30 minutes and empty, and puts a call to the ambulance one tap away. A text-my-location emergency card works without a voice call.',
@@ -56,7 +56,7 @@ export const overview = [
         '**Neighbours make it true.** Three different neighbours must agree before an outage is verified, so the alert is a shared act, not a post you scroll past. Neighbours then vote "back on for me" to close it.',
         '**Help travels door to door.** A neighbour with a generator, a gas stove or a charger offers it on the community board and shows on the street map as a gold light, with a thread running to the nearest dark home. People who need a lift, water, charging or cold storage for medicine can ask the street.',
         '**Shops grow together.** Spazas order stock as one group for lower prices, and see what an outage costs them, so a local business is held up by its neighbours.',
-        '**No one is left out.** It works anonymously, offline and on a basic phone, in four languages, for people who are deaf, hard of hearing, blind or have low vision, so the person who most needs the community is not the person the app forgets.',
+        '**No one is left out.** It works offline and on a basic phone, in four languages, for people who are deaf, hard of hearing, blind or have low vision, so the person who most needs the community is not the person the app forgets.',
         '**Trust, not rumour.** Because the information comes from real neighbours and is checked by more than one, it replaces the rumour mill with something people can rely on.',
         '**It protects the most vulnerable.** A live battery countdown and a one-tap ambulance call exist because the people closest to someone on a medical device are their neighbours and family.',
       ] },
@@ -164,7 +164,7 @@ export const ssdlc = [
   {
     id: 'requirements', title: 'Security requirements (risk assessment)',
     blocks: [
-      { p: 'Principle: collect as little personal data as possible and never trust one report. No account is needed to use the app. An optional account stores only a cell number or email, a salted password hash and a few settings. Location is optional and only ever shared when the person taps a button.' },
+      { p: 'Principle: collect as little personal data as possible and never trust one report. Anyone can look around without an account, and to take part a person signs in and uses a name their neighbours can see. The account stores only that name, a cell number or email (never shown to others), a salted password hash and a few settings. Deleting the account removes the name from every report and post. Location is optional and only ever shared when the person taps a button.' },
       { table: [
         ['Risk', 'Likelihood / impact', 'Control'],
         ['Fake or spam reports', 'High / High', 'An outage is verified only when 3 different devices agree. Write endpoints are rate limited and text length is capped.'],
@@ -174,7 +174,7 @@ export const ssdlc = [
         ['Leaked secrets', 'Medium / High', 'Keys and tokens live in server environment variables only.'],
         ['Unsafe medical guidance', 'Medium / High', 'Battery estimates are cautious and show their assumptions; the app prompts a call to the ambulance and says it is not medical advice.'],
         ['Malicious carer or supplier', 'Low / High', 'Vetting through a partner and admin approval before listing; quick removal.'],
-        ['Account takeover and password guessing (optional accounts)', 'Medium / High', 'Passwords are stored only as salted scrypt hashes and never returned. Sign-in is rate limited, and an unknown account takes as long to refuse as a wrong password. Sessions are random tokens in an HttpOnly, SameSite cookie for 90 days; only a hash of the token is stored. A person can sign out or delete the account (and every session) in the app. The medical plan and emergency contact never leave the phone.'],
+        ['Account takeover and password guessing', 'Medium / High', 'Passwords are stored only as salted scrypt hashes and never returned. Sign-in is rate limited, and an unknown account takes as long to refuse as a wrong password. Sessions are random tokens in an HttpOnly, SameSite cookie for 90 days; only a hash of the token is stored. A person can sign out or delete the account (and every session) in the app. The medical plan and emergency contact never leave the phone.'],
         ['Injection and cross-site scripting', 'Low / High', 'Database queries use parameters; React renders user text as text.'],
       ] },
       { p: 'Residual risk: coordinated fake reports from many devices. Accepted for the pilot, watched with the admin moderation tools, and reduced by raising the verification threshold in sensitive areas.' },
@@ -186,10 +186,10 @@ export const ssdlc = [
       { p: 'Method: STRIDE across the phone app, the API, the database, the admin page and the third-party data sources.' },
       { table: [
         ['Threat', 'Where it applies and what we do'],
-        ['Spoofing', 'Anonymous use is limited per device. Optional accounts use salted password hashes, rate-limited sign-in and HttpOnly session cookies. The admin page uses a secret token.'],
+        ['Spoofing', 'One account can confirm an outage only once, so a fake outage needs three real accounts. Accounts use salted password hashes, rate-limited sign-in and HttpOnly session cookies. The admin page uses a secret token.'],
         ['Tampering', 'All database queries are parameterised. Reports are validated and trimmed on the server. Prices for bookings are set on the server, never by the client.'],
         ['Repudiation', 'Moderation actions are limited to the admin page.'],
-        ['Information disclosure', 'Anonymous reports, optional pins, board posts rounded to about 100 m, secrets never sent to the browser. Bookings are private to a device and never cached by the service worker.'],
+        ['Information disclosure', 'Names are public to the community by design, but numbers and emails are not. Optional pins, board posts rounded to about 100 m, secrets never sent to the browser. Bookings are private to a device and never cached by the service worker.'],
         ['Denial of service', 'Rate limits, request size limits, an offline-capable app.'],
         ['Elevation of privilege', 'The admin area answers "not found" unless it is switched on.'],
       ] },
@@ -214,7 +214,7 @@ export const ssdlc = [
     id: 'testing', title: 'Security testing',
     blocks: [
       { ul: [
-        '**111 automated tests passing** (`npm test`): calculations, translations, the full API including admin, care bookings, rate limits and the outage rules, community and location rules, the battery model and alert stages, and accounts (registration, sessions, sign-out, settings sync, bookings following a person, deletion).',
+        '**112 automated tests passing** (`npm test`): calculations, translations, the full API including admin, care bookings, rate limits and the outage rules, community and location rules, the battery model and alert stages, and accounts (registration, sessions, sign-out, settings sync, bookings following a person, deletion).',
         '**Dependency scan (`npm audit`):** run during the build of this submission. All findings in production dependencies (body-parser, ip-address and the PDF library) were fixed by updating, and the production scan now reports **0 vulnerabilities**. Two moderate/high findings remain in the development-only build tool (Vite), which is not shipped to users.',
         '**Manual and browser testing:** every main flow was run in a real browser: wizards, report and booking submission, location and pin rules (pins outside South Africa or far from the community are rejected), the battery countdown and ambulance banner, and the emergency card.',
         '**Planned before launch:** an independent penetration test, a Content-Security-Policy header, load testing of the write endpoints, and a backup and restore test.',
@@ -238,7 +238,7 @@ export const ssdlc = [
 export const canvas = {
   problem: ['Unscheduled power and water outages in townships with no published, trusted information (load reduction, cable theft, substation faults; 22 major Johannesburg water outages in two weeks of January 2026).', 'Households on medical devices cannot tell if a backup will last.', 'Small businesses lose stock and sales and cannot see the cost.'],
   segments: ['Township households (free)', 'Medically dependent households and their carers', 'Spaza shops and small traders (Pro)', 'Suppliers, carers and clinics (partners)', 'Municipalities, banks, insurers and NGOs (sponsors)'],
-  uvp: 'The outage app that brings a community closer together: neighbours verify outages, offer help door to door and buy together, so technology connects people instead of isolating them. Free, anonymous, offline, for everyone, anywhere in South Africa.',
+  uvp: 'The outage app that brings a community closer together: neighbours verify outages, offer help door to door and buy together, so technology connects people instead of isolating them. Free, named neighbours, offline, for everyone, anywhere in South Africa.',
   solution: ['Live satellite street with verified outages', 'Forecast and typical duration', 'Medical battery countdown, alerts and ambulance call', 'Care and equipment booking', 'Outage-cost planner and restock orders', 'Community board; accessibility; four languages'],
   channels: ['WhatsApp sharing from the app', 'Spaza shop counters (QR code)', 'Community groups and ward committees', 'Clinics, carers and equipment suppliers', 'Installable web app, no app store'],
   revenue: ['Spaza Pro about R49 a month', 'Commission on restock orders (4%) and bookings (10%)', 'Partner listings about R299 a month', 'Municipal dashboard or sponsorship about R3,000 a month'],
@@ -263,10 +263,10 @@ export const demo = {
     'Satellite street: drag the slider to see the next 48 hours; tap the map to explore it full screen.',
     'Today: the verified outage, the outage map and the forecast.',
     'Deliver: enter 300 W and 1000 Wh, tap "Switched to battery now", and watch the countdown and alerts.',
-    'Share: see what neighbours offer or ask for (charging, water, lifts), and post your own in three steps.',
-    'Alerts: file a report in three steps, with an optional exact pin.',
+    'Share: see what neighbours offer or ask for (charging, water, lifts), and post your own in three steps (a free account is needed to post, so neighbours see your name).',
+    'Alerts: create a free account when asked (a name, a cell number or email, and a password), then file a report in three steps with an optional exact pin. Your name shows on it.',
     'Accessibility button (top right): try the deaf and blind quick setups, text size and high contrast.',
     'Settings: find any place in South Africa and join its community.',
   ],
-  sample: 'Real: the loadshedding status, official tariffs, map and building data (OpenStreetMap), weather, and all the app logic, which is covered by 111 automated tests. Sample and labelled: outage history for the demo, carers, equipment prices, payments, and some board posts.',
+  sample: 'Real: the loadshedding status, official tariffs, map and building data (OpenStreetMap), weather, and all the app logic, which is covered by 112 automated tests. Sample and labelled: outage history for the demo, carers, equipment prices, payments, and some board posts.',
 }

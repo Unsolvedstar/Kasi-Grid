@@ -20,9 +20,9 @@ export async function seedHistory(db, suburb = 'alex') {
     if (w % 3 === 0) rows.push(['power', d.getTime() + 3 * DAY + 11 * HOUR, 'Power cut, not on the schedule'])
     for (const [type, ts, text] of rows) {
       if (ts > now) continue
-      const r = await db.execute({ sql: 'INSERT INTO reports (suburb,type,text,ts,confirms,owner) VALUES (?,?,?,?,?,?)', args: [suburb, type, text, ts, 3, 'demo-history-owner'] })
+      const r = await db.execute({ sql: 'INSERT INTO reports (suburb,type,text,ts,confirms,owner,author) VALUES (?,?,?,?,?,?,?)', args: [suburb, type, text, ts, 3, 'demo-history-owner', 'Sipho K.'] })
       const id = Number(r.lastInsertRowid)
-      for (const dev of ['hist-a', 'hist-b', 'hist-c']) await db.execute({ sql: 'INSERT OR IGNORE INTO report_confirms (report_id, device) VALUES (?,?)', args: [id, dev + '-0000000000000000'] })
+      for (const [dev, nm] of [['hist-a', 'Sipho K.'], ['hist-b', 'Thandi M.'], ['hist-c', 'Lerato D.']]) await db.execute({ sql: 'INSERT OR IGNORE INTO report_confirms (report_id, device, name) VALUES (?,?,?)', args: [id, dev + '-0000000000000000', nm] })
       // Neighbours marked it back on after a plausible time: water 5 to 9 hours, power 2 to 5.
       const hours = type === 'water' ? 5 + (n % 5) : 2 + (n % 4)
       await db.execute({ sql: 'INSERT OR IGNORE INTO report_restored (report_id, device, ts) VALUES (?,?,?)', args: [id, 'hist-a-0000000000000000', ts + hours * HOUR] })
@@ -49,8 +49,8 @@ export async function refreshOutages(db) {
   }
   const now = Date.now()
   for (const o of LIVE) {
-    const r = await db.execute({ sql: 'INSERT INTO reports (suburb,type,text,ts,confirms,owner) VALUES (?,?,?,?,?,?)', args: [o.suburb, o.type, o.text, now - o.ago, 3, 'demo-live-owner'] })
-    for (const dev of ['demo-a', 'demo-b', 'demo-c']) await db.execute({ sql: 'INSERT OR IGNORE INTO report_confirms (report_id, device) VALUES (?,?)', args: [Number(r.lastInsertRowid), dev + '-0000000000000000'] })
+    const r = await db.execute({ sql: 'INSERT INTO reports (suburb,type,text,ts,confirms,owner,author) VALUES (?,?,?,?,?,?,?)', args: [o.suburb, o.type, o.text, now - o.ago, 3, 'demo-live-owner', 'Sipho K.'] })
+    for (const [dev, nm] of [['demo-a', 'Sipho K.'], ['demo-b', 'Thandi M.'], ['demo-c', 'Lerato D.']]) await db.execute({ sql: 'INSERT OR IGNORE INTO report_confirms (report_id, device, name) VALUES (?,?,?)', args: [Number(r.lastInsertRowid), dev + '-0000000000000000', nm] })
   }
 }
 

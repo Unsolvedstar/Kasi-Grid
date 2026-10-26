@@ -203,9 +203,10 @@ function ReportRow({ r, actions, run, area }) {
           {r.text}
         </p>
         <p className="muted small">
-          {timeAgo(r.ts, t)} · {t('confirmed by {n}', { n: r.confirms })}
+          {r.author && <><strong>{r.mine ? t('You') : r.author}</strong> · </>}{timeAgo(r.ts, t)} · {t('confirmed by {n}', { n: r.confirms })}
           {isConfirmed && <span className="badge ok">{t('Confirmed')}</span>}
           {r.sample && <span className="badge sample">{t('Sample')}</span>}
+          {r.confirmedBy?.length > 0 && <span className="muted small"> · {t('Also: {names}', { names: r.confirmedBy.slice(0, 4).join(', ') + (r.confirmedBy.length > 4 ? ' +' + (r.confirmedBy.length - 4) : '') })}</span>}
           {r.lat != null && <span className="badge"><Icon name="pin" /> {t('Pinned')}</span>}
           {' · '}<a href={waLink(`Kasi Grid${area ? ', ' + area : ''}: ${REPORT_TYPES[r.type].label} problem. ${r.text} (${r.confirms} neighbours confirmed) ${window.location.origin}`)} target="_blank" rel="noreferrer">{t('Share')}</a>
           {!r.mine && <> · <button className="link" onClick={() => run(actions.flag('reports', r.id))}>{t('Report')}</button></>}

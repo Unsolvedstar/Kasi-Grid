@@ -31,7 +31,7 @@ export default function Welcome({ setTab }) {
         <button type="button" className="chip" onClick={() => applyProfile('deaf')}>{t('I am deaf or hard of hearing')}</button>
         <button type="button" className="chip" onClick={() => applyProfile('blind')}>{t('I am blind or have low vision')}</button>
       </div>
-      <p className="muted small">{t('No account needed. If you want your settings and bookings on any phone, you can create one in Settings.')}</p>
+      <p className="muted small">{t('You can look around freely. To report, confirm or offer help, create a free account so neighbours see who said what.')}</p>
       <div className="chips">
         <button className="primary" onClick={() => { setSeen(true); setTab('alerts') }}>{t('Report a problem')}</button>
         <button className="ghost" onClick={() => setSeen(true)}>{t('Got it')}</button>
