@@ -223,14 +223,14 @@ Overall risk for a pilot: low to medium. The app holds no passwords, payment det
 - **Assumptions:** Hypotheses to validate, not results: spaza willingness to pay, municipal willingness to buy, supplier and carer partnerships, and whether a bank would offer an outage product.
 
 ## Demo guide
-Open the live app or the repository link. The demo build opens with a verified outage, a forecast and a typical duration. Items marked Sample (carers, equipment prices, some board posts, outage history) are made up and labelled so in the app.
+DEMO LOGIN for judges: judge1@kasigrid.demo with password KasiGrid2026! (a second account, judge2@kasigrid.demo with the same password, lets you confirm a report made by the first). Choose Sign in, type these, and you are in; the app then opens signed in every time. Open the live app or the repository link. The demo build opens with a verified outage, a forecast and a typical duration. Items marked Sample (carers, equipment prices, some board posts, outage history) are made up and labelled so in the app.
 
 **Try it**
 - Satellite street: drag the slider to see the next 48 hours; tap the map to explore it full screen.
 - Today: the verified outage, the outage map and the forecast.
 - Deliver: enter 300 W and 1000 Wh, tap "Switched to battery now", and watch the countdown and alerts.
 - Share: see what neighbours offer or ask for (charging, water, lifts), and post your own in three steps (a free account is needed to post, so neighbours see your name).
-- Alerts: create a free account when asked (a name, a cell number or email, and a password), then file a report in three steps with an optional exact pin. Your name shows on it.
+- Sign in with the demo login (judge1@kasigrid.demo / KasiGrid2026!), or create your own free account when asked (a name, a cell number or email, and a password), then file a report in three steps with an optional exact pin. Your name shows on it.
 - Accessibility button (top right): try the deaf and blind quick setups, text size and high contrast.
 - Settings: find any place in South Africa and join its community.
 

@@ -197,10 +197,11 @@ s = base('Team Amethyst & Azure, and where to find the code', true)
 card(s, 0.5, 1.2, 4.4, 2.0, 'Team', 'Tshedza Tshikovhi (22): software developer, leads a small team at Shudu Connections (Innovation Hub). Built CashCram, Top-13 in the NWU 2026 pitch competition.\nMulanga Munaka (22): biomedical engineering student at Wits, responsible for the medical side: the power plan, battery alerts and emergency features.', 'EAE7F7', DK)
 card(s, 5.1, 1.2, 4.4, 2.0, 'Why us', 'A developer who ships and a biomedical engineer who knows how people depend on power for health. Built, tested and checked on a phone.', 'EAE7F7', DK)
 const lk = (label, url, text, last) => [{ text: label, options: {} }, { text: text || url, options: { hyperlink: { url, tooltip: url }, color: '1B6FB5', breakLine: !last } }]
-card(s, 0.5, 3.4, 9.0, 1.5, 'Source code and demo', [
+card(s, 0.5, 3.3, 9.0, 2.0, 'Source code, demo and login', [
   ...lk('Git repository: ', REPO, REPO, false),
   ...(LIVE_URL ? lk('Live app: ', LIVE_URL, LIVE_URL, false) : []),
   ...(VIDEO_URL ? lk('Demo video (90 s): ', VIDEO_URL, 'Watch on Google Drive', false) : []),
+  { text: 'Demo login: judge1@kasigrid.demo  |  password: KasiGrid2026!  |  2nd: judge2@kasigrid.demo', options: { bold: true, breakLine: true } },
   { text: 'Try: the street slider, Today, Deliver (300 W, 1000 Wh, "Switched to battery"), and the accessibility button.', options: {} },
 ], 'EAE7F7', DK)
 

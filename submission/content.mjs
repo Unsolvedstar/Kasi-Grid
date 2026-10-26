@@ -7,6 +7,7 @@ export const TEAM = 'Amethyst & Azure'
 export const APP = 'Kasi Grid'
 export const REPO = 'https://github.com/Unsolvedstar/Kasi-Grid'
 export const LIVE_URL = 'https://kasi-grid.vercel.app'
+export const DEMO_LOGIN = { email: 'judge1@kasigrid.demo', email2: 'judge2@kasigrid.demo', password: 'KasiGrid2026!' }
 export const VIDEO_URL = 'https://drive.google.com/file/d/1W5WRlFDxXRhA3byGrrqE1VEr6Otl4hOX/view?usp=drivesdk'
 export const HACK = 'FNB App of the Year Hackathon 2026'
 export const TRACK = 'Climate resilience and essential services'
@@ -249,7 +250,7 @@ export const canvas = {
 }
 
 export const demo = {
-  intro: 'Open the live app or the repository link. The demo build opens with a verified outage, a forecast and a typical duration. Items marked Sample (carers, equipment prices, some board posts, outage history) are made up and labelled so in the app.',
+  intro: 'DEMO LOGIN for judges: judge1@kasigrid.demo with password KasiGrid2026! (a second account, judge2@kasigrid.demo with the same password, lets you confirm a report made by the first). Choose Sign in, type these, and you are in; the app then opens signed in every time. Open the live app or the repository link. The demo build opens with a verified outage, a forecast and a typical duration. Items marked Sample (carers, equipment prices, some board posts, outage history) are made up and labelled so in the app.',
   script: [
     ['0:00-0:10', 'Title slide, then the app on the satellite street', '"Loadshedding is over. But in kasi the power and water still go off, and nobody knows what is real. This is Kasi Grid."'],
     ['0:10-0:25', 'The street goes dark; open Today for the verified outage and the map', '"Three different neighbours reported no power, so it is a verified outage, not a rumour. It shows on the map, and the app says it is usually back around 09:30, because it has learned how long cuts last here."'],
@@ -264,7 +265,7 @@ export const demo = {
     'Today: the verified outage, the outage map and the forecast.',
     'Deliver: enter 300 W and 1000 Wh, tap "Switched to battery now", and watch the countdown and alerts.',
     'Share: see what neighbours offer or ask for (charging, water, lifts), and post your own in three steps (a free account is needed to post, so neighbours see your name).',
-    'Alerts: create a free account when asked (a name, a cell number or email, and a password), then file a report in three steps with an optional exact pin. Your name shows on it.',
+    'Sign in with the demo login (judge1@kasigrid.demo / KasiGrid2026!), or create your own free account when asked (a name, a cell number or email, and a password), then file a report in three steps with an optional exact pin. Your name shows on it.',
     'Accessibility button (top right): try the deaf and blind quick setups, text size and high contrast.',
     'Settings: find any place in South Africa and join its community.',
   ],

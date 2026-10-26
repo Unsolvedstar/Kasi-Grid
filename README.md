@@ -21,6 +21,7 @@ Eskom has reported no loadshedding since 16 May 2025 (more than 500 days), but h
 - **A medical power plan.** A live battery countdown for a medical device (corrected by readings from the battery display), alerts at 2 hours, 1 hour, 30 minutes and empty, and a one-tap ambulance call. An emergency card texts your location to a contact without a voice call.
 - **Care and equipment booking**, a **small-business outage cost** planner, **pooled restock orders** for spazas, a **community board** for offers and requests, nearby shops and clinics, and savings calculators.
 - **For everyone.** Accessibility settings for people who are deaf, hard of hearing, blind or have low vision (flash, vibration, large-text and spoken alerts, screen-reader announcements, text size, high contrast, reduced motion), four languages, offline, installable.
+- **Demo login for judges:** `judge1@kasigrid.demo` with password `KasiGrid2026!` (and `judge2@kasigrid.demo`, same password, to see two neighbours confirm each other).
 - **Named neighbours, not anonymous.** Anyone can look around; to report, confirm or offer help you sign in (cell number or email and a password) with a name your neighbours will see, and every report, confirmation and offer shows who said it. Your number or email is never shown. The account also keeps your area, language, accessibility settings and care bookings on any phone and signs you in automatically. Deleting the account removes your name from what you posted.
 
 ![The live satellite street](submission/shots/street.png)
