@@ -4,7 +4,7 @@ const fs = require('fs')
 const pptxgen = require('pptxgenjs')
 const REPO = 'https://github.com/Unsolvedstar/Kasi-Grid'
 const LIVE_URL = 'https://kasi-grid.vercel.app'
-const VIDEO_URL = 'https://drive.google.com/file/d/1vZBvpxMXeu8RfhizZllfzZQadJr1p1d-/view?usp=drive_link'
+const VIDEO_URL = 'https://drive.google.com/file/d/1W5WRlFDxXRhA3byGrrqE1VEr6Otl4hOX/view?usp=drivesdk'
 
 const pres = new pptxgen()
 pres.layout = 'LAYOUT_16x9'
@@ -59,7 +59,7 @@ T(s, [
   { text: 'Source code: ', options: {} },
   { text: REPO, options: { hyperlink: { url: REPO, tooltip: 'Open the Git repository' }, color: AZL, breakLine: !!(LIVE_URL || VIDEO_URL) } },
   ...(LIVE_URL ? [{ text: 'Live app: ', options: {} }, { text: LIVE_URL, options: { hyperlink: { url: LIVE_URL, tooltip: 'Open the live app' }, color: AZL, breakLine: !!VIDEO_URL } }] : []),
-  ...(VIDEO_URL ? [{ text: 'Demo video: ', options: {} }, { text: 'Watch the 90-second demo', options: { hyperlink: { url: VIDEO_URL, tooltip: 'Watch the demo video' }, color: AZL } }] : []),
+  ...(VIDEO_URL ? [{ text: 'Demo video: ', options: {} }, { text: 'Watch the demo video', options: { hyperlink: { url: VIDEO_URL, tooltip: 'Watch the demo video' }, color: AZL } }] : []),
 ], { x: 0.6, y: 4.2, w: 5.6, h: 1.0, fontSize: 11.5, color: 'C9BEEB', valign: 'top' })
 pic(s, 'street', 6.7, 0.45, { h: 4.7 })
 
@@ -200,7 +200,7 @@ const lk = (label, url, text, last) => [{ text: label, options: {} }, { text: te
 card(s, 0.5, 3.3, 9.0, 2.0, 'Source code, demo and login', [
   ...lk('Git repository: ', REPO, REPO, false),
   ...(LIVE_URL ? lk('Live app: ', LIVE_URL, LIVE_URL, false) : []),
-  ...(VIDEO_URL ? lk('Demo video (90 s): ', VIDEO_URL, 'Watch on Google Drive', false) : []),
+  ...(VIDEO_URL ? lk('Demo video: ', VIDEO_URL, 'Watch on Google Drive', false) : []),
   { text: 'Demo login: judge1@kasigrid.demo  |  password: KasiGrid2026!  |  2nd: judge2@kasigrid.demo', options: { bold: true, breakLine: true } },
   { text: 'Try: the street slider, Today, Deliver (300 W, 1000 Wh, "Switched to battery"), and the accessibility button.', options: {} },
 ], 'EAE7F7', DK)

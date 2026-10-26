@@ -12,7 +12,7 @@ Generated from `submission/content.mjs` by `node submission/build.mjs`. Edit the
 
 The Git repository is given as a link inside the overview and the deck: https://github.com/Unsolvedstar/Kasi-Grid
 Live app: https://kasi-grid.vercel.app
-Demo video: https://drive.google.com/file/d/1vZBvpxMXeu8RfhizZllfzZQadJr1p1d-/view?usp=drive_link
+Demo video: https://drive.google.com/file/d/1W5WRlFDxXRhA3byGrrqE1VEr6Otl4hOX/view?usp=drivesdk
 
 ## Before you submit
 - [ ] Deploy the app (see DEPLOY.md), then set `LIVE_URL` in `submission/content.mjs` and re-run `node submission/build.mjs` and the deck export
